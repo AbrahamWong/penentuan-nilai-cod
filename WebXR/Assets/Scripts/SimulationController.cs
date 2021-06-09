@@ -4,12 +4,12 @@ using UnityEngine;
 
 public class SimulationController : MonoBehaviour
 {
-    const int MAX_VALUE = 42_069;
+    private GameObject[] interactables;
 
     // Start is called before the first frame update
     void Start()
     {
-        
+        interactables = GameObject.FindGameObjectsWithTag("Interactable");
     }
 
     // Update is called once per frame
@@ -18,34 +18,65 @@ public class SimulationController : MonoBehaviour
         
     }
 
-    public void OnPouringInteractable(GameObject pouring, GameObject poured)
+    public void OnPouringInteractable(GameInteractables pouring, GameInteractables poured)
     {
         if (pouring == null || poured == null) return;
 
-        Debug.Log(pouring.name + " menuangkan cairan kepada " + poured.name);
+        // Debug.Log(pouring.name + " menuangkan cairan kepada " + poured.name);
+        pouring.ReduceFill("pour");
+        poured.IncreaseFill("pour");
+
     }
 
-    public GameObject GetClosestInteractable(GameObject gameObject)
+    public void onSuckingWithPipetteInteractable(GameInteractables pipette, GameInteractables container)
     {
-        GameObject[] interactables = GameObject.FindGameObjectsWithTag("Interactable");
-        Transform interactingTransform = gameObject.transform;
+        if (pipette == null || container == null) return;
 
-        Vector3 distance = new Vector3(MAX_VALUE, MAX_VALUE, MAX_VALUE);
-        GameObject closest = new GameObject();
+        // Debug.Log(pipette.name + " mengambil cairan dari " + container.name);
+        pipette.IncreaseFill("suck");
+        container.ReduceFill("suck");
+    }
+
+    public void onPouringWithPipetteInteractable(GameInteractables pipette, GameInteractables container)
+    {
+        if (pipette == null || container == null) return;
+
+        // Debug.Log(pipette.name + " menuangkan cairan dari pipet ke " + container.name);
+        pipette.ReduceFill("suck");
+        container.IncreaseFill("suck");
+    }
+
+    public GameInteractables GetClosestInteractable(GameInteractables gameInteractables)
+    {
+        Transform interactingTransform = gameInteractables.transform;
+
+        float distance = 0.6f;
+
+        // Tidak bisa menginisiasi dengan new GameInteractables karena GameInteractables         
+        // implements MonoBehavior, dan sepertinya segala sesuatu yang implement 
+        // MonoBehavior tidak boleh dibuat menggunakan new Class().
+        GameObject gameObject = new GameObject();
+        GameInteractables closest = null;
 
         foreach (var interactable in interactables)
         {
-            Vector3 currentDistance = interactingTransform.position - interactable.transform.position;
-            if (currentDistance.Equals(new Vector3(0, 0, 0)))
+            float currentDistance = Vector3.Distance(interactingTransform.position, interactable.transform.position);
+            float closestX = (interactingTransform.position.x - interactable.transform.position.x);
+            float closestY = (interactingTransform.position.y - interactable.transform.position.y);
+            float closestZ = (interactingTransform.position.z - interactable.transform.position.z);
+            if (currentDistance == 0f)
                 continue;
-            else if (Vector3.Min(currentDistance, distance) == currentDistance)
+            else if (currentDistance < distance)
             {
                 distance = currentDistance;
-                closest = interactable;
+                Debug.Log("Close: " + interactable + "; " + distance + "\nDistance in xyz: " + closestX + " " + closestY + " " + closestZ);
+                closest = interactable.GetComponent<GameInteractables>();
             }
             else {; }
         }
 
+        Debug.Log("Closest: " + closest + " with distance " + distance);
+        Destroy(gameObject);
         return closest;
     }
 }

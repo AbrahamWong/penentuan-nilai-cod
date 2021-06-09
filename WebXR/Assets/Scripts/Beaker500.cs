@@ -1,23 +1,25 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Beaker500 : MonoBehaviour
+public class Beaker500 : GameInteractables
 {
-    SimulationController simulationController;
-    [SerializeField] Renderer rend;
+    // Fill dari beaker (500ml) memiliki rentang nilai 0.04 (500ml) s/d -0.06 (kosong)
+    // Fill dari labu ukur (500ml) memiliki rentang nilai 0 (500ml) s/d -0.11 (kosong)
+    [SerializeField] private float fillInMililiter;
 
-    // Start is called before the first frame update
     void Start()
     {
         // Memanggil komponen dari objek lain
         // https://forum.unity.com/threads/how-can-i-reference-to-a-component-of-another-gameobject.280451/
         simulationController = GameObject.FindGameObjectWithTag("GameController").GetComponent<SimulationController>();
 
-        // Memanggil komponen dari objek lain dari nama objek.
-        // Karena bersifat sementara, ganti cara ini ketika banyak objek terlibat.
-        // https://forum.unity.com/threads/getting-a-gameobject-by-name.777797/
-        rend = GameObject.Find("Beaker Filling").GetComponent<Renderer>();
+        rend = gameObject.transform.Find("MeshContainer/beaker_500/Beaker Filling").GetComponent<Renderer>();
+
+        normalZAngle = 0.4378937;
+        maxFill = 0.04f;
+        minFill = -0.06f;
     }
 
     // Update is called once per frame
@@ -32,16 +34,49 @@ public class Beaker500 : MonoBehaviour
         // Nilai normal pada sudut N derajat untuk Z+ adalah 0.4378937, dimana nilai normal memiliki nilai 0 - 1 dan 
         // merepresentasikan rotasi sebuah benda berdasarkan perpindahan pada putaran, tanpa memedulikan arah putaran.
 
-        if (transform.rotation.normalized.z > 0.4378937)
+        if (transform.rotation.normalized.z > normalZAngle)
         {
-            // Debug.Log(transform.rotation.eulerAngles.x + ", " + transform.rotation.eulerAngles.z);
+            // Jika kosong, abaikan kemiringan, karena isi beaker habis.
+            if (rend.material.GetFloat("_BeakerFill") <= minFill) return ;
 
             // Referensikan gameObject dari sebuah objek secara langsung: 
             // https://answers.unity.com/questions/36109/get-the-gameobject-that-is-connected-to-the-script.html
-            simulationController.OnPouringInteractable(gameObject, simulationController.GetClosestInteractable(gameObject));
+            simulationController.OnPouringInteractable(this, simulationController.GetClosestInteractable(this));
+            
+        }
 
-            Debug.Log(rend.material.GetFloat("_BeakerFill"));
+        fillInMililiter = EstimateFillInML();
+    }
+
+    public override float EstimateFillInML()
+    {
+        return ((rend.material.GetFloat("_BeakerFill") - minFill) / (maxFill - minFill)) * 500;
+    }
+
+    public override void IncreaseFill(string type)
+    {
+        if (type.Equals("pour"))
+        {
+            rend.material.SetFloat("_BeakerFill", rend.material.GetFloat("_BeakerFill") + 0.0001f);
+        }
+        else if (type.Equals("suck"))
+        {
+            rend.material.SetFloat("_BeakerFill", rend.material.GetFloat("_BeakerFill") + 0.0005f);
+        }
+
+        
+    }
+
+    public override void ReduceFill(string type)
+    {
+        if (type.Equals("pour"))
+        {
             rend.material.SetFloat("_BeakerFill", rend.material.GetFloat("_BeakerFill") - 0.0001f);
         }
+        else if (type.Equals("suck"))
+        {
+            rend.material.SetFloat("_BeakerFill", rend.material.GetFloat("_BeakerFill") - 0.0005f);
+        }
     }
+
 }
