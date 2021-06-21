@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Beaker500 : GameInteractables
+public class Beaker500 : GamePourable
 {
     // Fill dari beaker (500ml) memiliki rentang nilai 0.04 (500ml) s/d -0.06 (kosong)
     // Fill dari labu ukur (500ml) memiliki rentang nilai 0 (500ml) s/d -0.11 (kosong)
@@ -41,7 +41,7 @@ public class Beaker500 : GameInteractables
 
             // Referensikan gameObject dari sebuah objek secara langsung: 
             // https://answers.unity.com/questions/36109/get-the-gameobject-that-is-connected-to-the-script.html
-            simulationController.OnPouringInteractable(this, simulationController.GetClosestInteractable(this));
+            simulationController.OnPouringInteractable(this, simulationController.GetClosestPourables(this));
             
         }
 
@@ -57,7 +57,7 @@ public class Beaker500 : GameInteractables
     {
         if (type.Equals("pour"))
         {
-            rend.material.SetFloat("_BeakerFill", rend.material.GetFloat("_BeakerFill") + 0.0001f);
+            rend.material.SetFloat("_BeakerFill", rend.material.GetFloat("_BeakerFill") + liquidSpeed);
         }
         else if (type.Equals("suck"))
         {
@@ -71,12 +71,11 @@ public class Beaker500 : GameInteractables
     {
         if (type.Equals("pour"))
         {
-            rend.material.SetFloat("_BeakerFill", rend.material.GetFloat("_BeakerFill") - 0.0001f);
+            rend.material.SetFloat("_BeakerFill", rend.material.GetFloat("_BeakerFill") - liquidSpeed);
         }
         else if (type.Equals("suck"))
         {
             rend.material.SetFloat("_BeakerFill", rend.material.GetFloat("_BeakerFill") - 0.0005f);
         }
     }
-
 }

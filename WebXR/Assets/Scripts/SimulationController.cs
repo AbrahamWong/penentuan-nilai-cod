@@ -5,6 +5,10 @@ using UnityEngine;
 public class SimulationController : MonoBehaviour
 {
     private GameObject[] interactables;
+    public bool usingLabCoat { get; set; }
+    public bool usingGloves { get; set; }
+    public bool usingRespirator { get; set; }
+    public bool usingGlasses { get; set; }
 
     // Start is called before the first frame update
     void Start()
@@ -18,7 +22,7 @@ public class SimulationController : MonoBehaviour
         
     }
 
-    public void OnPouringInteractable(GameInteractables pouring, GameInteractables poured)
+    public void OnPouringInteractable(GamePourable pouring, GamePourable poured)
     {
         if (pouring == null || poured == null) return;
 
@@ -28,7 +32,7 @@ public class SimulationController : MonoBehaviour
 
     }
 
-    public void onSuckingWithPipetteInteractable(GameInteractables pipette, GameInteractables container)
+    public void onSuckingWithPipetteInteractable(GamePourable pipette, GamePourable container)
     {
         if (pipette == null || container == null) return;
 
@@ -37,7 +41,7 @@ public class SimulationController : MonoBehaviour
         container.ReduceFill("suck");
     }
 
-    public void onPouringWithPipetteInteractable(GameInteractables pipette, GameInteractables container)
+    public void onPouringWithPipetteInteractable(GamePourable pipette, GamePourable container)
     {
         if (pipette == null || container == null) return;
 
@@ -78,5 +82,55 @@ public class SimulationController : MonoBehaviour
         Debug.Log("Closest: " + closest + " with distance " + distance);
         Destroy(gameObject);
         return closest;
+    }
+
+    public GamePourable GetClosestPourables(GameInteractables gameInteractables)
+    {
+        GamePourable closestPourable;
+        Transform interactingTransform = gameInteractables.transform;
+
+        float distance = 0.6f;
+
+        GameObject gameObject = new GameObject();
+        closestPourable = null;
+
+        foreach (var pourable in interactables)
+        {
+            float currentDistance = Vector3.Distance(interactingTransform.position, pourable.transform.position);
+            float closestX = (interactingTransform.position.x - pourable.transform.position.x);
+            float closestY = (interactingTransform.position.y - pourable.transform.position.y);
+            float closestZ = (interactingTransform.position.z - pourable.transform.position.z);
+            if (currentDistance == 0f)
+                continue;
+            else if (currentDistance < distance && pourable.GetComponent<GamePourable>() != null)
+            {
+                distance = currentDistance;
+                Debug.Log("CloseP: " + pourable + "; " + distance + "\nDistanceP in xyz: " + closestX + " " + closestY + " " + closestZ);
+                closestPourable = pourable.GetComponent<GamePourable>();
+            }
+            else {; }
+        }
+
+        Debug.Log("ClosestP: " + closestPourable + " with distanceP " + distance);
+        Destroy(gameObject);
+        return closestPourable;
+    }
+
+    protected WatchGlass glass;
+    public WatchGlass getWatchGlass()
+    {
+        GameObject[] interactables = GameObject.FindGameObjectsWithTag("Interactable");
+
+        foreach (var interactable in interactables)
+        {
+            if (interactable.name == "Lab Watch Glass")
+            {
+                glass = interactable.GetComponent<WatchGlass>();
+
+                return glass;
+            }
+        }
+
+        return null;
     }
 }

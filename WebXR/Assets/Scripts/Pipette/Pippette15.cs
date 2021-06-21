@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Pippette15 : GameInteractables
+public class Pippette15 : GamePourable
 {
     private bool canFill = true, first = true;
 
@@ -38,14 +38,14 @@ public class Pippette15 : GameInteractables
         else
         {
             canFill = false;
-            simulationController.onPouringWithPipetteInteractable(this, simulationController.GetClosestInteractable(this));
+            simulationController.onPouringWithPipetteInteractable(this, simulationController.GetClosestPourables(this));
         }
     }
 
     public void CallTriggerExitFromChild(Collider other)
     {
         canFill = true;
-        simulationController.onSuckingWithPipetteInteractable(this, simulationController.GetClosestInteractable(this));
+        simulationController.onSuckingWithPipetteInteractable(this, simulationController.GetClosestPourables(this));
     }
 
     public override void IncreaseFill(string type)

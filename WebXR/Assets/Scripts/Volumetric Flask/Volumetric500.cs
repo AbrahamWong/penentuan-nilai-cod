@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Volumetric500 : GameInteractables
+public class Volumetric500 : GamePourable
 {
     // Fill dari beaker (500ml) memiliki rentang nilai 0.04 (500ml) s/d -0.06 (kosong)
     // Fill dari labu ukur (500ml) memiliki rentang nilai 0 (500ml) s/d -0.11 (kosong)
@@ -30,7 +30,7 @@ public class Volumetric500 : GameInteractables
         if (Mathf.Abs(transform.rotation.normalized.x) > normalXAngle || Mathf.Abs(transform.rotation.normalized.z) > normalZAngle)
         {
             if (rend.material.GetFloat("_VolumetricFill") <= minFill) return;
-            simulationController.OnPouringInteractable(this, simulationController.GetClosestInteractable(this));
+            simulationController.OnPouringInteractable(this, simulationController.GetClosestPourables(this));
         }
         fillInMililiter = EstimateFillInML();
     }
@@ -44,7 +44,7 @@ public class Volumetric500 : GameInteractables
     {
         if (type.Equals("pour"))
         {
-            rend.material.SetFloat("_VolumetricFill", rend.material.GetFloat("_VolumetricFill") + 0.0001f);
+            rend.material.SetFloat("_VolumetricFill", rend.material.GetFloat("_VolumetricFill") + liquidSpeed);
         }
         else if (type.Equals("suck"))
         {
@@ -58,7 +58,7 @@ public class Volumetric500 : GameInteractables
     {
         if (type.Equals("pour"))
         {
-            rend.material.SetFloat("_VolumetricFill", rend.material.GetFloat("_VolumetricFill") - 0.0001f);
+            rend.material.SetFloat("_VolumetricFill", rend.material.GetFloat("_VolumetricFill") - liquidSpeed);
         }
         else if (type.Equals("suck"))
         {

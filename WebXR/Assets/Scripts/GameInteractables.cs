@@ -5,27 +5,15 @@ using UnityEngine;
 abstract public class GameInteractables : MonoBehaviour
 {
     protected SimulationController simulationController;
-    [SerializeField]
-    protected Renderer rend;
-    protected double normalXAngle = 0;
-    protected double normalZAngle = 0;
+    protected float weightContained = 0f;
 
-    protected bool isFull, isEmpty = false;
-    protected float maxFill, minFill;
-
-    // Start is called before the first frame update
-    void Start()
+    public float getWeightContained()
     {
-        
+        return weightContained;
     }
 
-    // Update is called once per frame
-    void Update()
+    public void setWeightContained(float weight)
     {
-        
+        weightContained = weight;
     }
-
-    abstract public float EstimateFillInML();
-    abstract public void ReduceFill(string type);
-    abstract public void IncreaseFill(string type);
 }
