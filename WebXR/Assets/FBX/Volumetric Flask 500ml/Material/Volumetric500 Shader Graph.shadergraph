@@ -10,13 +10,13 @@
             "typeInfo": {
                 "fullName": "UnityEditor.ShaderGraph.Internal.ColorShaderProperty"
             },
-            "JSONnodeData": "{\n    \"m_Guid\": {\n        \"m_GuidSerialized\": \"9b52acf2-aea6-4226-a223-47686d667fe5\"\n    },\n    \"m_Name\": \"LiquidColor\",\n    \"m_DefaultReferenceName\": \"Color_D6C170B6\",\n    \"m_OverrideReferenceName\": \"\",\n    \"m_GeneratePropertyBlock\": true,\n    \"m_Precision\": 0,\n    \"m_GPUInstanced\": false,\n    \"m_Hidden\": false,\n    \"m_Value\": {\n        \"r\": 0.16567280888557435,\n        \"g\": 0.6886792182922363,\n        \"b\": 0.6730203628540039,\n        \"a\": 0.0\n    },\n    \"m_ColorMode\": 0\n}"
+            "JSONnodeData": "{\n    \"m_Guid\": {\n        \"m_GuidSerialized\": \"9b52acf2-aea6-4226-a223-47686d667fe5\"\n    },\n    \"m_Name\": \"LiquidColor\",\n    \"m_DefaultReferenceName\": \"Color_D6C170B6\",\n    \"m_OverrideReferenceName\": \"_LiquidColor\",\n    \"m_GeneratePropertyBlock\": true,\n    \"m_Precision\": 0,\n    \"m_GPUInstanced\": false,\n    \"m_Hidden\": false,\n    \"m_Value\": {\n        \"r\": 0.16567280888557435,\n        \"g\": 0.6886792182922363,\n        \"b\": 0.6730203628540039,\n        \"a\": 0.0\n    },\n    \"m_ColorMode\": 0\n}"
         },
         {
             "typeInfo": {
                 "fullName": "UnityEditor.ShaderGraph.Internal.ColorShaderProperty"
             },
-            "JSONnodeData": "{\n    \"m_Guid\": {\n        \"m_GuidSerialized\": \"535ed010-f49e-4f8e-81dd-5116a34a9ce5\"\n    },\n    \"m_Name\": \"SurfaceColor\",\n    \"m_DefaultReferenceName\": \"Color_C9EB94ED\",\n    \"m_OverrideReferenceName\": \"\",\n    \"m_GeneratePropertyBlock\": true,\n    \"m_Precision\": 0,\n    \"m_GPUInstanced\": false,\n    \"m_Hidden\": false,\n    \"m_Value\": {\n        \"r\": 0.18431372940540315,\n        \"g\": 0.8392156958580017,\n        \"b\": 0.8196078538894653,\n        \"a\": 0.0\n    },\n    \"m_ColorMode\": 0\n}"
+            "JSONnodeData": "{\n    \"m_Guid\": {\n        \"m_GuidSerialized\": \"535ed010-f49e-4f8e-81dd-5116a34a9ce5\"\n    },\n    \"m_Name\": \"SurfaceColor\",\n    \"m_DefaultReferenceName\": \"Color_C9EB94ED\",\n    \"m_OverrideReferenceName\": \"_SurfaceColor\",\n    \"m_GeneratePropertyBlock\": true,\n    \"m_Precision\": 0,\n    \"m_GPUInstanced\": false,\n    \"m_Hidden\": false,\n    \"m_Value\": {\n        \"r\": 0.18431372940540315,\n        \"g\": 0.8392156958580017,\n        \"b\": 0.8196078538894653,\n        \"a\": 0.0\n    },\n    \"m_ColorMode\": 0\n}"
         },
         {
             "typeInfo": {

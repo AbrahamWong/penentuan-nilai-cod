@@ -10,56 +10,58 @@ public class SimulationController : MonoBehaviour
     public bool usingRespirator { get; set; }
     public bool usingGlasses { get; set; }
 
-    // Start is called before the first frame update
+    private GameObject[] indicators;
+    private bool[] indicatorsStatus;
+
     void Start()
     {
         interactables = GameObject.FindGameObjectsWithTag("Interactable");
+
+        indicators = GameObject.FindGameObjectsWithTag("IndicatorTexts");
+        // https://stackoverflow.com/questions/20565894/setting-entire-bool-to-false/20566137
+        // deklarasi array akan membuat array of bool dengan default value false
+        indicatorsStatus = new bool[5];
     }
 
-    // Update is called once per frame
-    void Update()
+    public void setPrerequisiteStatus (int prerequisiteNumber, bool status)
     {
-        
+        indicatorsStatus[prerequisiteNumber] = status;
+        indicators[prerequisiteNumber].SetActive(status);
     }
 
     public void OnPouringInteractable(GamePourable pouring, GamePourable poured)
     {
         if (pouring == null || poured == null) return;
-
-        // Debug.Log(pouring.name + " menuangkan cairan kepada " + poured.name);
         pouring.ReduceFill("pour");
         poured.IncreaseFill("pour");
 
     }
 
-    public void onSuckingWithPipetteInteractable(GamePourable pipette, GamePourable container)
+    public void onSuckingWithPipette(GamePourable pipette, GamePourable container)
     {
         if (pipette == null || container == null) return;
-
-        // Debug.Log(pipette.name + " mengambil cairan dari " + container.name);
         pipette.IncreaseFill("suck");
         container.ReduceFill("suck");
     }
 
-    public void onPouringWithPipetteInteractable(GamePourable pipette, GamePourable container)
+    public void onPouringWithPipette(GamePourable pipette, GamePourable container)
     {
         if (pipette == null || container == null) return;
-
-        // Debug.Log(pipette.name + " menuangkan cairan dari pipet ke " + container.name);
         pipette.ReduceFill("suck");
         container.IncreaseFill("suck");
+    }
+
+    public void onPouringWithBigPipette(GamePourable pipette, GamePourable container)
+    {
+        if (pipette == null || container == null) return;
+        pipette.ReduceFill("bpip");
+        container.IncreaseFill("bpip");
     }
 
     public GameInteractables GetClosestInteractable(GameInteractables gameInteractables)
     {
         Transform interactingTransform = gameInteractables.transform;
-
         float distance = 0.6f;
-
-        // Tidak bisa menginisiasi dengan new GameInteractables karena GameInteractables         
-        // implements MonoBehavior, dan sepertinya segala sesuatu yang implement 
-        // MonoBehavior tidak boleh dibuat menggunakan new Class().
-        GameObject gameObject = new GameObject();
         GameInteractables closest = null;
 
         foreach (var interactable in interactables)
@@ -80,7 +82,6 @@ public class SimulationController : MonoBehaviour
         }
 
         Debug.Log("Closest: " + closest + " with distance " + distance);
-        Destroy(gameObject);
         return closest;
     }
 
@@ -90,8 +91,6 @@ public class SimulationController : MonoBehaviour
         Transform interactingTransform = gameInteractables.transform;
 
         float distance = 0.6f;
-
-        GameObject gameObject = new GameObject();
         closestPourable = null;
 
         foreach (var pourable in interactables)
@@ -112,8 +111,38 @@ public class SimulationController : MonoBehaviour
         }
 
         Debug.Log("ClosestP: " + closestPourable + " with distanceP " + distance);
-        Destroy(gameObject);
         return closestPourable;
+    }
+
+    public GamePourable GetClosestPourables(Transform transform)
+    {
+        float distance = 0.6f;
+        GamePourable closestPourable = null;
+
+        foreach (var pourable in interactables)
+        {
+            float currentDistance = Vector3.Distance(transform.position, pourable.transform.position);
+            float closestX = (transform.position.x - pourable.transform.position.x);
+            float closestY = (transform.position.y - pourable.transform.position.y);
+            float closestZ = (transform.position.z - pourable.transform.position.z);
+            if (currentDistance == 0f)
+                continue;
+            else if (currentDistance < distance && pourable.GetComponent<GamePourable>() != null)
+            {
+                distance = currentDistance;
+                Debug.Log("ClosePT: " + pourable + "; " + distance + "\nDistancePT in xyz: " + closestX + " " + closestY + " " + closestZ);
+                closestPourable = pourable.GetComponent<GamePourable>();
+            }
+            else {; }
+        }
+
+        Debug.Log("ClosestPT: " + closestPourable + " with distancePT " + distance);
+        return closestPourable;
+    }
+
+    public void RefillPourable(GamePourable pourable)
+    {
+        pourable.IncreaseFill("pour");
     }
 
     protected WatchGlass glass;

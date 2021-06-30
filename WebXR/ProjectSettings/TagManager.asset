@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Interactable
   - ScaleText
+  - IndicatorTexts
   layers:
   - Default
   - TransparentFX
