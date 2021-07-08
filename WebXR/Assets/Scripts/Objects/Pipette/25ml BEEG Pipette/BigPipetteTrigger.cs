@@ -7,11 +7,12 @@ public class BigPipetteTrigger : MonoBehaviour
     private bool insideTrigger = false;
     private string collideWith;
     private GamePourable volumetric;
+    private VolumePipette volumePipette;
 
     // Start is called before the first frame update
     void Start()
     {
-        
+        volumePipette = gameObject.GetComponent<VolumePipette>();
     }
 
     // Update is called once per frame
@@ -21,13 +22,14 @@ public class BigPipetteTrigger : MonoBehaviour
         {
             switch (collideWith)
             {
-                case "bottle_sulfuric_acid":
-                    gameObject.GetComponentInParent<VolumePipette>().IncreaseFill("bpip");
+                case "Sulfuric Acid Bottle":
+                    gameObject.GetComponent<VolumePipette>().IncreaseFill("bpip");
                     break;
 
-                case "volumetric_500":
-                    gameObject.GetComponentInParent<VolumePipette>().PourToVolumetric(volumetric);
+                case "Volumetric 500_S":
+                    gameObject.GetComponent<VolumePipette>().PourToVolumetric(volumetric);
                     break;
+
                 default:
                     break;
             }
@@ -36,24 +38,28 @@ public class BigPipetteTrigger : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        string collideName = other.transform.GetChild(0).name;
-        if (collideName.Equals("bottle_sulfuric_acid"))
+        string collideName = other.transform.name;
+        if (collideName.Equals("Sulfuric Acid Bottle"))
         {
             insideTrigger = true;
             collideWith = collideName;
+
+            ArrayList substance = new ArrayList();
+            substance.Add("h2so4");
+            volumePipette.setParticleContained(substance);
         }
-        else if (collideName.Equals("volumetric_500"))
+        else if (collideName.Equals("Volumetric 500_S"))
         {
             insideTrigger = true;
             collideWith = collideName;
-            volumetric = other.transform.parent.GetComponent<Volumetric500>();
+            volumetric = other.transform.GetComponent<Volumetric500>();
         }
     }
 
     private void OnTriggerExit(Collider other)
     {
-        string collideName = other.transform.GetChild(0).name;
-        if (collideName.Equals("bottle_sulfuric_acid") || collideName.Equals("volumetric_500"))
+        string collideName = other.transform.name;
+        if (collideName.Equals("Sulfuric Acid Bottle") || collideName.Equals("Volumetric 500_S"))
         {
             insideTrigger = false;
             collideWith = "";

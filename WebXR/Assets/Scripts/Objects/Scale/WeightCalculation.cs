@@ -7,7 +7,7 @@ public class WeightCalculation : MonoBehaviour
 {
     private SimulationController simulationController;
     private float weightAttached = 0f;
-    private GameObject bigNumber, smallNumber;
+    private TextMeshPro bigText, smallText;
 
     // Start is called before the first frame update
     void Start()
@@ -18,20 +18,25 @@ public class WeightCalculation : MonoBehaviour
         foreach (var text in scaleTexts)
         {
             if (text.name == "Berat Diatas Koma")
-                bigNumber = text;
-            if (text.name == "Berat Dibawah Koma")
-                smallNumber = text;
+            {
+                bigText = text.GetComponent<TextMeshPro>();
+            }
+            else if (text.name == "Berat Dibawah Koma")
+            {
+                smallText = text.GetComponent<TextMeshPro>();
+            }
         }
     }
 
     // Update is called once per frame
     private GameObject objectAboveScale;
+    private GameInteractables interactablesAboveScale;
     private bool hasObjectAbove = false;
     void Update()
     {
         if (hasObjectAbove)
         {
-            weightAttached = objectAboveScale.GetComponent<GameInteractables>().getWeightContained();
+            weightAttached = interactablesAboveScale.getWeightContained();
             PrintValue(weightAttached);
         }
     }
@@ -39,14 +44,19 @@ public class WeightCalculation : MonoBehaviour
     private void OnCollisionEnter(Collision collision)
     {
         objectAboveScale = collision.transform.gameObject;
+        if (objectAboveScale.GetComponent<GameInteractables>() == null) return;
+        interactablesAboveScale = objectAboveScale.GetComponent<GameInteractables>();
 
-        weightAttached = objectAboveScale.GetComponent<GameInteractables>().getWeightContained();
+        weightAttached = interactablesAboveScale.getWeightContained();
         PrintValue(weightAttached);
         hasObjectAbove = true;
     }
 
     private void OnCollisionExit(Collision collision)
     {
+        objectAboveScale = null;
+        interactablesAboveScale = null;
+
         weightAttached = 0f;
         PrintValue(weightAttached);
         hasObjectAbove = false;
@@ -74,7 +84,7 @@ public class WeightCalculation : MonoBehaviour
                 break;
         }
 
-        bigNumber.GetComponent<TextMeshProUGUI>().SetText(bigger.ToString());
-        smallNumber.GetComponent<TextMeshProUGUI>().SetText(smaller.ToString());
+        bigText.SetText(bigger.ToString());
+        smallText.SetText(smaller.ToString());
     }
 }

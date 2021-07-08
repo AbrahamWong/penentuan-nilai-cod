@@ -34,10 +34,9 @@ public class FumeRoom : MonoBehaviour
     public void CheckFumeRoomPrerequisites ()
     {
         GameObject textPrerequisite = new GameObject();
-        textPrerequisite.AddComponent<TextMeshPro>();
 
         // https://docs.microsoft.com/en-us/dotnet/api/system.string.format?view=net-5.0#System_String_Format_System_String_System_Object___
-        TextMeshPro tmp = textPrerequisite.GetComponent<TextMeshPro>();
+        TextMeshPro tmp = textPrerequisite.AddComponent<TextMeshPro>();
         tmp.text = string.Format("Maaf, untuk membuka lemari asam, anda perlu\n{0}{1}{2}{3}", 
             !simulationController.usingLabCoat          ? "- Menggunakan jas lab\n" : "",
             !simulationController.usingRespirator       ? "- Menggunakan masker\n" : "",
@@ -46,12 +45,13 @@ public class FumeRoom : MonoBehaviour
         tmp.fontSize = 0.5f;
 
         textPrerequisite.transform.SetParent(transform);
-        textPrerequisite.transform.localPosition = new Vector3(-0.32f, 0.17f, 0);
+        // textPrerequisite.transform.localPosition = new Vector3(-0.32f, 0.17f, 0);
 
         // https://forum.unity.com/threads/modify-the-width-and-height-of-recttransform.270993/
         RectTransform rt = textPrerequisite.GetComponent<RectTransform>();
         rt.sizeDelta = new Vector2(0.75f, 0.5f);
-        rt.rotation = Quaternion.Euler(0, 90, 0);
+        rt.localEulerAngles = new Vector3(0, 90, 0);
+        rt.localPosition = new Vector3(-0.32f, 0.17f, 0);
 
         // Destroy after 1.5 seconds
         Destroy(textPrerequisite, 1.5f);

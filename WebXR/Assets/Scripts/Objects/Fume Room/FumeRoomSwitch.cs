@@ -16,8 +16,8 @@ public class FumeRoomSwitch : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        fumeRoom = transform.parent.parent.parent.gameObject.GetComponent<FumeRoom>();
-        switchMesh = transform.GetChild(0).gameObject;
+        fumeRoom = transform.parent.parent.gameObject.GetComponent<FumeRoom>();
+        switchMesh = transform.Find("MeshContainer/Saklar").gameObject;
         
         mat = switchMesh.GetComponent<MeshRenderer>().material;
         emissionColor = mat.GetColor("_EmissionColor");
@@ -35,8 +35,6 @@ public class FumeRoomSwitch : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        Debug.Log("Trigger enters the fume button");
-
         if (simulationController.usingLabCoat && simulationController.usingRespirator && simulationController.usingGlasses && simulationController.usingGloves)
         {
             switchedOn = !switchedOn;

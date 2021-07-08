@@ -5,6 +5,8 @@ using UnityEngine;
 public class RefillBox : MonoBehaviour
 {
     private SimulationController simulationController;
+    private GamePourable pourable;
+    private int timer = 0;
 
     // Start is called before the first frame update
     void Start()
@@ -12,18 +14,24 @@ public class RefillBox : MonoBehaviour
         simulationController = GameObject.FindGameObjectWithTag("GameController").GetComponent<SimulationController>();
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-
-    }
-
     private void OnTriggerEnter(Collider other)
     {
-        GamePourable pourable = simulationController.GetClosestPourables(transform);
-        if (pourable != null)
+        timer = 0;
+        pourable = other.GetComponent<GamePourable>() == null ? pourable : other.GetComponent<GamePourable>();
+        pourable.getParticleContained().Clear();
+    }
+    private void OnTriggerStay(Collider other)
+    {
+        if (pourable != null && (timer + 1) % 5 == 0)
         {
             simulationController.RefillPourable(pourable);
         }
+
+        timer++;
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        pourable = null;
     }
 }

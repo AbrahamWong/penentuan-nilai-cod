@@ -7,8 +7,9 @@ public class Volumetric500 : GamePourable
     // Fill dari beaker (500ml) memiliki rentang nilai 0.04 (500ml) s/d -0.06 (kosong)
     // Fill dari labu ukur (500ml) memiliki rentang nilai 0 (500ml) s/d -0.11 (kosong)
     [SerializeField] private float fillInMililiter;
+    private Coroutine co;
 
-    void Start()
+    protected override void Start()
     {
         // https://answers.unity.com/questions/63317/access-a-child-from-the-parent-or-other-gameobject.html
         // https://answers.unity.com/questions/851056/how-can-i-find-object-childs-child-or-child-in-chi.html
@@ -19,72 +20,110 @@ public class Volumetric500 : GamePourable
         maxFill = 0f;
         minFill = -0.11f;
 
-        weightContained = EstimateFillInML();
+        weightContained = 0;    // 0ml => test 100ml
+        capacity = 500;         // 500ml
+
+        base.Start();
+        rend.material.SetFloat(rendererFillReference, getFillMaterialPercentage());
+        
+        co = StartCoroutine(coroutineCheckPreRequisites());
+        cheatCode();
+    }
+
+    private void cheatCode()
+    {
+        if(!name.Contains("CHEAT")) return;
+        weightContained = 500;
+        rend.material.SetFloat(rendererFillReference, getFillMaterialPercentage());
+        isFull = true;
+        particleContained.Clear();
+        Debug.Log("CHEAT: " + GetType().ToString());
+    
+        switch (name)
+        {
+            case "CHEAT1":
+                particleContained.Add("h2c2o4");
+                break;
+    
+            case "CHEAT2":
+                particleContained.Add("kmno4");
+                break;
+            
+            case "CHEAT3":
+                weightContained = 611.11f;
+                rend.material.SetFloat(rendererFillReference, getFillMaterialPercentage());
+                capacity = 611.11f;
+                particleContained.Add("h2so4");
+                break;
+            
+            default:
+                break;
+        }
     }
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
-        checkParticleInside();
-
         if (Mathf.Abs(transform.rotation.normalized.x) > normalXAngle || Mathf.Abs(transform.rotation.normalized.z) > normalZAngle)
         {
-            if (rend.material.GetFloat("_VolumetricFill") <= minFill) return;
-            simulationController.OnPouringInteractable(this, simulationController.GetClosestPourables(this));
+            // Find nearest object with burette
+            GameInteractables interactableNearby = simulationController.GetClosestInteractable(transform);
+            if (rend.material.GetFloat(rendererFillReference) <= minFill || interactableNearby == null) return;
+
+            else if (interactableNearby.GetType() == typeof(Funnel))
+                simulationController.OnPouringInteractable(this, 
+                    interactableNearby.GetComponent<Funnel>().getAttachedIntearctable().GetComponent<GamePourable>());
+
+            simulationController.OnPouringInteractable(this, simulationController.GetClosestPourables(transform));
         }
         fillInMililiter = EstimateFillInML();
     }
 
-    public override float EstimateFillInML()
+    IEnumerator coroutineCheckPreRequisites()
     {
-        return ((rend.material.GetFloat("_VolumetricFill") - minFill) / (maxFill - minFill)) * 500;
+        while (!simulationController.isExperimentDone())
+        {
+            Debug.Log("CO: " + name + "'s Coroutine still running");
+            
+            if (fillInMililiter >= capacity)
+            {
+                switch (particleContained[0])
+                {
+                    // Prasyarat 1 terpenuhi: 0.01N Asam Oksalat
+                    case "h2c2o4":
+                        if (simulationController.getPrerequisiteStatus(0)) break;
+                        simulationController.setPrerequisiteStatus(0, true);
+                        break;
+
+                    // Prasyarat 2 terpenuhi: 0.01N Kalium Permanganat
+                    case "kmno4":
+                        if (simulationController.getPrerequisiteStatus(1)) break;
+                        simulationController.setPrerequisiteStatus(1, true);
+                        break;
+
+                    // Prasyarat 3 terpenuhi: 8N Asam Sulfat
+                    case "h2so4":
+                        if (simulationController.getPrerequisiteStatus(2) || capacity < 600) break;
+                        simulationController.setPrerequisiteStatus(2, true);
+                        break;
+
+                    // Belum ada prasyarat yang dipenuhi
+                    default:
+                        break;
+                }
+            }
+
+            yield return new WaitForSeconds(1f);
+        }
+
+        yield return null;
     }
 
-    public override void IncreaseFill(string type)
+    // Karena capacity asli = 500ml, dan total kapasitas yang dibutuhkan untuk membuat
+    // H2SO4 8N adalah 611.11ml, maka perlu memperbesar kapasitas labu ukur
+    public void increaseCapacity()
     {
-
-        if (type.Equals("pour"))
-        {
-            weightContained += 50;
-            rend.material.SetFloat("_VolumetricFill", getFillMaterialPercentage());
-        }
-        else if (type.Equals("suck"))
-        {
-            weightContained += 10;
-            rend.material.SetFloat("_VolumetricFill", getFillMaterialPercentage());
-        }
-        else if (type.Equals("bpip"))
-        {
-            weightContained += 0.01f;
-            rend.material.SetFloat("_VolumetricFill", getFillMaterialPercentage());
-        }
-    }
-
-    public override void ReduceFill(string type)
-    {
-        if (type.Equals("pour"))
-        {
-            weightContained -= 50;
-            rend.material.SetFloat("_VolumetricFill", getFillMaterialPercentage());
-        }
-        else if (type.Equals("suck"))
-        {
-            weightContained -= 10;
-            rend.material.SetFloat("_VolumetricFill", getFillMaterialPercentage());
-        }
-    }
-
-    public float getFillMaterialPercentage()
-    {
-        float fillPercentage = weightContained / 500;
-
-        Debug.Log(fillPercentage * (maxFill - minFill) + minFill);
-        return fillPercentage * (maxFill - minFill) + minFill;
-    }
-
-    private void checkParticleInside()
-    {
-        rend.material.SetColor("_LiquidColor", parseHexToColor(particleContained != "kmno4" ? LiquidColors.NORMAL : LiquidColors.KMNO4_100));
-        rend.material.SetColor("_SurfaceColor", parseHexToColor(particleContained != "kmno4" ? SurfaceColors.NORMAL : SurfaceColors.KMNO4_100));
+        capacity = 611.11f;
+        isFull = false;
     }
 }

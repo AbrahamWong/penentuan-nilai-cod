@@ -9,23 +9,26 @@ public class VolumePipette : GamePourable
     private TextMeshPro fillValue;
 
     // Start is called before the first frame update
-    void Start()
+    protected override void Start()
     {
-        simulationController = GameObject.FindGameObjectWithTag("GameController").GetComponent<SimulationController>();
         rend = gameObject.transform.Find("MeshContainer/volume_pipette_25ml/Fill").GetComponent<Renderer>();
 
         maxFill = 0.1f;
         minFill = -0.2f;
+        capacity = 25;      // 25ml
 
-        rend.material.SetFloat("_VolumePipetteFill", minFill);
+        base.Start(); 
+        rend.material.SetFloat(rendererFillReference, minFill);
         weightContained = EstimateFillInML();
 
         fillValue = transform.Find("MeshContainer/volume_pipette_25ml/Teks Volume/Volume").GetComponent<TextMeshPro>();
         fillValue.text = weightContained.ToString();
+
+        text.text = "";
     }
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
         weightContained = EstimateFillInML();
         fillInMililiter = EstimateFillInML();
@@ -36,37 +39,9 @@ public class VolumePipette : GamePourable
 
     public void PourToVolumetric(GamePourable volumetric)
     {
+        if (weightContained < 0.01f) return;
+
+        if (volumetric.GetType() == typeof(Volumetric500)) volumetric.GetComponent<Volumetric500>().increaseCapacity();
         simulationController.onPouringWithBigPipette(this, volumetric);
-    }
-
-    public override void ReduceFill(string type)
-    {
-        if (type.Equals("bpip") && weightContained > 0f)
-        {
-            weightContained -= 0.01f;
-            rend.material.SetFloat("_VolumePipetteFill", getFillMaterialPercentage());
-        }
-    }
-
-    public override void IncreaseFill(string type)
-    {
-        if (type.Equals("bpip") && weightContained < 25f)
-        {
-            weightContained += 0.00075f;
-            rend.material.SetFloat("_VolumePipetteFill", getFillMaterialPercentage());
-        }
-    }
-
-    public override float EstimateFillInML()
-    {
-        // Asumsi dia hanya bisa menghisap 25ml larutan
-        return (rend.material.GetFloat("_VolumePipetteFill") - minFill) / (maxFill - minFill) * 25;
-    }
-
-    public float getFillMaterialPercentage()
-    {
-        float fillPercentage = weightContained / 25;
-
-        return fillPercentage * (maxFill - minFill) + minFill;
     }
 }

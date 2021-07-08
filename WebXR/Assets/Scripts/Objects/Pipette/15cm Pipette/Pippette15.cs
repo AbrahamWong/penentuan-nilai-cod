@@ -5,62 +5,56 @@ using UnityEngine;
 public class Pippette15 : GamePourable
 {
     [SerializeField] private float fillInMililiter;
-    [SerializeField] private bool hasFill = false;
+    // [SerializeField] private bool hasFill = false;
+    [SerializeField] private bool canUse = false;
+    [SerializeField] private string tempParticle;
+    private GamePourable pourableOnContact;
+
+    public void setUsability(bool status) => canUse = status;
+    public bool getUsability() => canUse;
+
+    public void setTempParticle(string particle) => tempParticle = particle;
+    public string getTempParticle() => tempParticle;
+    public void setPourableOnContact(GamePourable pourable) => pourableOnContact = pourable;
+
     
     // Start is called before the first frame update
-    void Start()
+    protected override void Start()
     {
-        simulationController = GameObject.FindGameObjectWithTag("GameController").GetComponent<SimulationController>();
         rend = gameObject.transform.Find("MeshContainer/pipet_15_cm/Isi").GetComponent<Renderer>();
 
         maxFill = 0.15f;
         minFill = -0.15f;
+        capacity = 5;  // 5ml
 
-        rend.material.SetFloat("_PipetteFill", minFill);
+        base.Start();
+        rend.material.SetFloat(rendererFillReference, minFill);
         weightContained = EstimateFillInML();
-        if (weightContained > 0) hasFill = true;
     }
 
     private void Update()
     {
-        weightContained = EstimateFillInML();
         fillInMililiter = EstimateFillInML();
     }
 
-    public void CallTriggerEnterFromChild(Collider other)
+    public override void StartTriggerAction()
     {
-        if (hasFill)
+        base.StartTriggerAction();
+        if (isFull && canUse)
         {
-            simulationController.onPouringWithPipette(this, simulationController.GetClosestPourables(this));
-        }
-        else
-        {
-            simulationController.onSuckingWithPipette(this, simulationController.GetClosestPourables(this));
+            simulationController.onPouringWithPipette(this, pourableOnContact);
+            particleContained.Clear();
         }
     }
 
-    public override void IncreaseFill(string type)
+    public override void StopTriggerAction()
     {
-        if (type.Equals("suck"))
+        base.StopTriggerAction();
+        if (!isFull && canUse)
         {
-            rend.material.SetFloat("_PipetteFill", maxFill);
-            hasFill = true;
+            simulationController.onSuckingWithPipette(this, pourableOnContact);
+            particleContained.Add(tempParticle);
+            tempParticle = "";
         }
-    }
-
-    public override void ReduceFill(string type)
-    {
-        if (type.Equals("suck"))
-        {
-            rend.material.SetFloat("_PipetteFill", minFill);
-            hasFill = false;
-        }
-        
-    }
-
-    public override float EstimateFillInML()
-    {
-        // Asumsi dia hanya bisa menghisap 10ml larutan
-        return (rend.material.GetFloat("_PipetteFill") - minFill) / (maxFill - minFill) * 10;
     }
 }

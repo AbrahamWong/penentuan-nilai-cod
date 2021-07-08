@@ -10,10 +10,8 @@ public class FunnelTrigger : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        simulationController = GameObject.FindGameObjectWithTag("GameController").GetComponent<SimulationController>();
-
         // topkek
-        funnel = transform.parent.parent.parent.gameObject.GetComponent<Funnel>();
+        funnel = transform.gameObject.GetComponent<Funnel>();
     }
 
     // Update is called once per frame

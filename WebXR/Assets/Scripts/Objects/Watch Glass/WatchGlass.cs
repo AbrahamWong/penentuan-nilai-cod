@@ -10,16 +10,16 @@ public class WatchGlass : GameInteractables
     public string particleInside { get; set; }
 
     // Start is called before the first frame update
-    void Start()
+    protected override void Start()
     {
-        simulationController = GameObject.FindGameObjectWithTag("GameController").GetComponent<SimulationController>();
+        base.Start();
+        text.text = "";
     }
 
     // Update is called once per frame
-    void Update()
-    {
-        
-    }
+    // private void Update()
+    // { 
+    // }
 
     // Penggunaan ArrayList daripada array Transform[]
     // https://www.tutorialsteacher.com/csharp/csharp-arraylist
