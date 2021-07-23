@@ -1,14 +1,8 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Volumetric500 : GamePourable
 {
-    // Fill dari beaker (500ml) memiliki rentang nilai 0.04 (500ml) s/d -0.06 (kosong)
-    // Fill dari labu ukur (500ml) memiliki rentang nilai 0 (500ml) s/d -0.11 (kosong)
-    [SerializeField] private float fillInMililiter;
-    private Coroutine co;
-
     protected override void Start()
     {
         // https://answers.unity.com/questions/63317/access-a-child-from-the-parent-or-other-gameobject.html
@@ -18,7 +12,7 @@ public class Volumetric500 : GamePourable
         normalXAngle = 0.6959127;
         normalZAngle = 0.6959127;
         maxFill = 0f;
-        minFill = -0.11f;
+        minFill = -0.101f;
 
         weightContained = 0;    // 0ml => test 100ml
         capacity = 500;         // 500ml
@@ -26,7 +20,7 @@ public class Volumetric500 : GamePourable
         base.Start();
         rend.material.SetFloat(rendererFillReference, getFillMaterialPercentage());
         
-        co = StartCoroutine(coroutineCheckPreRequisites());
+        StartCoroutine(coroutineCheckPreRequisites());
         cheatCode();
     }
 
@@ -43,14 +37,17 @@ public class Volumetric500 : GamePourable
         {
             case "CHEAT1":
                 particleContained.Add("h2c2o4");
+                offsetWeight = 0.225f;
                 break;
     
             case "CHEAT2":
                 particleContained.Add("kmno4");
+                offsetWeight = 0.158f;
                 break;
             
             case "CHEAT3":
                 weightContained = 611.11f;
+                offsetWeight = 111.11f;
                 rend.material.SetFloat(rendererFillReference, getFillMaterialPercentage());
                 capacity = 611.11f;
                 particleContained.Add("h2so4");
@@ -61,50 +58,68 @@ public class Volumetric500 : GamePourable
         }
     }
 
-    // Update is called once per frame
-    private void Update()
+
+    private new void OnTriggerEnter(Collider other)
     {
-        if (Mathf.Abs(transform.rotation.normalized.x) > normalXAngle || Mathf.Abs(transform.rotation.normalized.z) > normalZAngle)
+        pouredObject = other.GetComponent<GamePourable>();
+        if (pouredObject == null)
         {
-            // Find nearest object with burette
-            GameInteractables interactableNearby = simulationController.GetClosestInteractable(transform);
-            if (rend.material.GetFloat(rendererFillReference) <= minFill || interactableNearby == null) return;
-
-            else if (interactableNearby.GetType() == typeof(Funnel))
-                simulationController.OnPouringInteractable(this, 
-                    interactableNearby.GetComponent<Funnel>().getAttachedIntearctable().GetComponent<GamePourable>());
-
-            simulationController.OnPouringInteractable(this, simulationController.GetClosestPourables(transform));
+            pouredObject = other.GetComponent<Funnel>().getAttachedIntearctable().gameObject.GetComponent<GamePourable>();
+            if (pouredObject == null) return;
         }
-        fillInMililiter = EstimateFillInML();
+
+        else if (pouredObject.GetComponent<Volumetric500>() != null || pouredObject.GetComponent<Burette>() != null) return;
+
+        okToPour = true;
     }
+
+    private void OnTriggerStay(Collider other)
+    {
+        if (okToPour)
+        {
+            if (rend.material.GetFloat(rendererFillReference) <= minFill ||
+                pouredObject.transform.position.y > transform.position.y) return;
+
+            if (Mathf.Abs(transform.rotation.normalized.x) > normalXAngle || Mathf.Abs(transform.rotation.normalized.z) > normalZAngle)
+            {
+                simulationController.OnPouringInteractable(this, pouredObject);
+                Debug.Log("Volumetric500: " + name + " menuangkan ke " + pouredObject.name);
+            }
+                
+        }
+    }
+
 
     IEnumerator coroutineCheckPreRequisites()
     {
         while (!simulationController.isExperimentDone())
-        {
-            Debug.Log("CO: " + name + "'s Coroutine still running");
-            
-            if (fillInMililiter >= capacity)
+        {   
+            if (weightContained >= capacity)
             {
                 switch (particleContained[0])
                 {
                     // Prasyarat 1 terpenuhi: 0.01N Asam Oksalat
                     case "h2c2o4":
-                        if (simulationController.getPrerequisiteStatus(0)) break;
+                        if (simulationController.getPrerequisiteStatus(0) || 
+                            !isFloatEqual(simulationController.PrerequisiteIngredientDictionary["h2c2o4"], offsetWeight, 4)) break;
                         simulationController.setPrerequisiteStatus(0, true);
+                        simulationController.PlayAudioByName("ok_final");
                         break;
 
                     // Prasyarat 2 terpenuhi: 0.01N Kalium Permanganat
                     case "kmno4":
-                        if (simulationController.getPrerequisiteStatus(1)) break;
+                        if (simulationController.getPrerequisiteStatus(1) ||
+                            !isFloatEqual(simulationController.PrerequisiteIngredientDictionary["kmno4"], offsetWeight, 4)) break;
                         simulationController.setPrerequisiteStatus(1, true);
+                        simulationController.PlayAudioByName("ok_final");
                         break;
 
                     // Prasyarat 3 terpenuhi: 8N Asam Sulfat
                     case "h2so4":
-                        if (simulationController.getPrerequisiteStatus(2) || capacity < 600) break;
+                        if (simulationController.getPrerequisiteStatus(2) || capacity < 600 ||
+                            !isFloatEqual(simulationController.PrerequisiteIngredientDictionary["h2so4"], offsetWeight, 0)) break;
                         simulationController.setPrerequisiteStatus(2, true);
+                        simulationController.PlayAudioByName("ok_final");
                         break;
 
                     // Belum ada prasyarat yang dipenuhi
@@ -117,6 +132,15 @@ public class Volumetric500 : GamePourable
         }
 
         yield return null;
+    }
+
+    private bool isFloatEqual (float a, float b, int power)
+    {
+        float roundTo = Mathf.Pow(10, power);
+        float A = Mathf.Round(a * roundTo) / roundTo;
+        float B = Mathf.Round(b * roundTo) / roundTo;
+        Debug.Log(A + " <= A || B => " + B);
+        return A == B;
     }
 
     // Karena capacity asli = 500ml, dan total kapasitas yang dibutuhkan untuk membuat

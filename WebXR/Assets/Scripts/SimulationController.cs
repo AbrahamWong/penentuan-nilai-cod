@@ -2,13 +2,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 using WebXR;
+using TMPro;
 
 public class SimulationController : MonoBehaviour
 {
     [SerializeField] private GameObject[] interactables;
-
-    // gedebug
-    [SerializeField] private List<GamePourable> pourables;
     public bool usingLabCoat { get; set; }
     public bool usingGloves { get; set; }
     public bool usingRespirator { get; set; }
@@ -17,90 +15,81 @@ public class SimulationController : MonoBehaviour
     [SerializeField] private GameObject[] indicators;
     [SerializeField] private bool[] indicatorsStatus;
 
-    private WebXRController leftController;
-    private WebXRController rightController;
+    private WebXRController leftController = null;  private TextMeshPro leftTest;
+    private WebXRController rightController = null; private TextMeshPro rightTest;
+
+    public WebXRController getLeftController() => leftController;
+    public WebXRController getRightController() => rightController;
+
+    public Dictionary<string, float> PrerequisiteIngredientDictionary { get; } = new Dictionary<string, float>();
+
+    public AudioClip[] clips;
 
     void Start()
     {
         interactables = GameObject.FindGameObjectsWithTag("Interactable");
+        indicators = Linqer.sortGameObjectArray(GameObject.FindGameObjectsWithTag("IndicatorTexts"));
 
-        foreach (GameObject interactable in interactables)
-        {
-            if (interactable.GetComponent<GamePourable>() != null) pourables.Add(interactable.GetComponent<GamePourable>());
-        }
-
-        indicators = GameObject.FindGameObjectsWithTag("IndicatorTexts");
         foreach (GameObject indicator in indicators) indicator.SetActive(false);
 
         // https://stackoverflow.com/questions/20565894/setting-entire-bool-to-false/20566137
         // deklarasi array akan membuat array of bool dengan default value false
         indicatorsStatus = new bool[indicators.Length];
 
+        GameObject[] gameObjects = GameObject.FindGameObjectsWithTag("VRController");
+        foreach (GameObject controller in gameObjects)
+        {
+            if (controller.name.Equals("handL"))
+            {
+                leftController = controller.GetComponent<WebXRController>();
+                leftTest = leftController.GetComponentInChildren<TextMeshPro>();
+            }
+            if (controller.name.Equals("handR"))
+            {
+                rightController = controller.GetComponent<WebXRController>();
+                rightTest = rightController.GetComponentInChildren<TextMeshPro>();
+            }
+        }
+
+        StartCoroutine(coroutineControllerAction(leftController, rightController));
+        StartCoroutine(checkExperimentStatus());
         StartCoroutine(updateText());
 
-        GameObject[] gameObjects = GameObject.FindGameObjectsWithTag("VRController");
-        leftController = gameObjects[0].name == "handL" ? gameObjects[0].GetComponent<WebXRController>() : null;
-        rightController = gameObjects[1].name == "handR" ? gameObjects[1].GetComponent<WebXRController>() : null;
-
+        PrerequisiteIngredientDictionary.Add("h2c2o4", 0.225f);
+        PrerequisiteIngredientDictionary.Add("kmno4", 0.158f);
+        PrerequisiteIngredientDictionary.Add("h2so4", 111.11f);
     }
 
-
-    private void Update()
+    public void PlayAudioByName (string audioName)
     {
-        // Test hanya bisa di VR hardware
-        if (leftController.GetButtonDown(WebXRController.ButtonTypes.Trigger))
+        AudioSource audioSource = gameObject.AddComponent<AudioSource>();
+        audioSource.clip = findClipInSimulator(audioName);
+        audioSource.Play();
+
+        Destroy(audioSource, 1f);
+    }
+
+    private AudioClip findClipInSimulator(string name)
+    {
+        AudioClip c = null;
+        foreach (AudioClip clip in clips)
         {
-            GamePourable p = GetClosestPourables(leftController.transform);
-            if (p != null) p.StartTriggerAction();
-        } 
-        else if (rightController.GetButtonDown(WebXRController.ButtonTypes.Trigger))
-        {
-            GamePourable p = GetClosestPourables(rightController.transform);
-            if (p != null) p.StartTriggerAction();
+            if (clip.name.Equals(name)) c = clip;
         }
 
-        // Test hanya bisa di VR hardware
-        if (leftController.GetButtonUp(WebXRController.ButtonTypes.Trigger))
-        {
-            GamePourable p = GetClosestPourables(leftController.transform);
-            if (p != null) p.StopTriggerAction();
-        } 
-        else if (rightController.GetButtonUp(WebXRController.ButtonTypes.Trigger))
-        {
-            GamePourable p = GetClosestPourables(rightController.transform);
-            if (p != null) p.StopTriggerAction();
-        }
-
-        // Test hanya bisa di VR hardware
-        if (leftController.GetButtonDown(WebXRController.ButtonTypes.Grip)
-            || rightController.GetButtonDown(WebXRController.ButtonTypes.Grip))
-        {
-            GameInteractables leftInteractable = GetClosestInteractable(leftController.transform);
-            GameInteractables rightInteractable = GetClosestInteractable(rightController.transform);
-
-            if (leftInteractable != null && leftInteractable.getTemperature() > 41 && !usingGloves)
-            {
-                leftInteractable.gameObject.GetComponent<FixedJoint>().connectedBody = null;
-            }
-            else if (rightInteractable != null && rightInteractable.getTemperature() > 41 && !usingGloves)
-            {
-                rightInteractable.gameObject.GetComponent<FixedJoint>().connectedBody = null;
-            }
-        }
+        return c;
     }
 
     public void setPrerequisiteStatus (int prerequisiteNumber, bool status)
     {
         indicatorsStatus[prerequisiteNumber] = status;
         indicators[prerequisiteNumber].SetActive(status);
-        Debug.Log("Prerequisite number " + prerequisiteNumber + " is now " + status);
     }
 
     public bool getPrerequisiteStatus(int prerequisiteNumber) => indicatorsStatus[prerequisiteNumber];
 
     public bool isExperimentDone()
     {
-        // https://stackoverflow.com/questions/34214167/if-all-elements-in-bool-array-are-true
         bool done = true;
         foreach (var indicatorStatus in indicatorsStatus)
         {
@@ -110,9 +99,10 @@ public class SimulationController : MonoBehaviour
         return done;
     }
 
-    IEnumerator delayBeforeQuit()
+    IEnumerator checkExperimentStatus()
     {
-        yield return new WaitForSeconds(4f);
+        while (!isExperimentDone()) yield return null;
+        yield return new WaitForSeconds(15f);
         Debug.Log("Simulation Controller: App called to Quit");
         // Application.Quit();
 
@@ -126,94 +116,180 @@ public class SimulationController : MonoBehaviour
         #endif
     }
 
-    IEnumerator updateText()
+    private bool isObjectWithNoText(GameInteractables interactable)
     {
-        yield return new WaitForSeconds(.1f);
+        if (interactable == null
+                || interactable.GetType() == typeof(LabSafetyTrigger)
+                || interactable.GetType() == typeof(Funnel)
+                || interactable.GetType() == typeof(Burette)
+                || interactable.GetType() == typeof(ElectricHeaterTrigger)
+                || interactable.GetType() == typeof(WatchGlass)
+                || interactable.GetType() == typeof(VolumePipette)) return true;
+        else return false;
+    }
+
+    public IEnumerator updateText()
+    {
+        yield return new WaitForEndOfFrame();
+        foreach (GameObject item in interactables)
+        {
+            if (item == null) 
+            {
+                // https://answers.unity.com/questions/1074164/remove-element-from-array.html
+                int index = System.Array.IndexOf(interactables, item);
+                    
+                for (int a = index; a < interactables.Length - 1; a++)
+                {
+                    // moving elements downwards, to fill the gap at [index]
+                    interactables[a] = interactables[a + 1];
+                }
+                    
+                // finally, let's decrement Array's size by one
+                System.Array.Resize(ref interactables, interactables.Length - 1);
+                yield return null;
+                continue;
+            }
+
+            GameInteractables interactable = item.GetComponent<GameInteractables>();
+            if (isObjectWithNoText(interactable)) continue;
+
+            interactable.setInteractableText(
+                "Massa ditampung = " + (Mathf.Round(interactable.getWeightContained() * 100) / 100).ToString() +
+                "\nTemperatur = " + interactable.getTemperature().ToString() +
+                "\nMenampung " + interactable.getParticleInString()
+            );
+        }
+        yield return null;
+    }
+
+    public IEnumerator updateInteractableText(GameInteractables interactable)
+    {
+        if (isObjectWithNoText(interactable)) yield break;
+
+        interactable.setInteractableText(
+                "Massa ditampung = " + (Mathf.Round(interactable.getWeightContained() * 100) / 100).ToString() +
+                "\nTemperatur = " + interactable.getTemperature().ToString() +
+                "\nMenampung " + interactable.getParticleInString()
+        );
+    }
+
+    
+    private char controllerSideTriggered = ' ';
+    private GamePourable pourableTriggered = null;
+    IEnumerator coroutineControllerAction(WebXRController controllerL, WebXRController controllerR)
+    {
         while (!isExperimentDone())
         {
-            foreach (GameObject item in interactables)
+            leftTest.text = "Trigger = " + leftController.GetAxis(WebXRController.AxisTypes.Trigger) 
+                + "\nGrip = " + leftController.GetAxis(WebXRController.AxisTypes.Grip);
+            rightTest.text = "Trigger = " + rightController.GetAxis(WebXRController.AxisTypes.Trigger)
+                + "\nGrip = " + rightController.GetAxis(WebXRController.AxisTypes.Grip);
+
+            // Test hanya bisa di VR hardware
+            // if (leftController.GetButtonDown(WebXRController.ButtonTypes.Trigger))
+            if (controllerL.GetAxis(WebXRController.AxisTypes.Trigger) >= 0.85 && controllerSideTriggered.Equals(' '))
             {
-                if (item == null) 
+                GamePourable p = GetClosestPourables(controllerL.transform);
+                if (p != null)
                 {
-                    // https://answers.unity.com/questions/1074164/remove-element-from-array.html
-                    int index = System.Array.IndexOf(interactables, item);
-                    
-                    for (int a = index; a < interactables.Length - 1; a++)
-                    {
-                        // moving elements downwards, to fill the gap at [index]
-                        interactables[a] = interactables[a + 1];
-                    }
-                    
-                    // finally, let's decrement Array's size by one
-                    System.Array.Resize(ref interactables, interactables.Length - 1);
-                    yield return null;
-                    continue;
+                    p.StartTriggerAction();
+                    pourableTriggered = p;
+                    controllerSideTriggered = 'L';
                 }
+            }
+            else if (controllerR.GetAxis(WebXRController.AxisTypes.Trigger) >= 0.85 && controllerSideTriggered.Equals(' '))
+            {
+                GamePourable p = GetClosestPourables(controllerR.transform);
+                if (p != null) 
+                {
+                    p.StartTriggerAction();
+                    pourableTriggered = p;
+                    controllerSideTriggered = 'R';
+                }
+            }
 
-                GameInteractables interactable = item.GetComponent<GameInteractables>();
-                // Debug.Log("Simulation Controller: debugName=" + (interactable == null? "true" : interactable.name));
-                if (interactable == null
-                    || interactable.GetType() == typeof(LabSafetyTrigger)
-                    || interactable.GetType() == typeof(BuretteControlTrigger)
-                    || interactable.GetType() == typeof(Funnel)
-                    || interactable.GetType() == typeof(Burette)
-                    || interactable.GetType() == typeof(ElectricHeaterTrigger)
-                    || interactable.GetType() == typeof(WatchGlass)
-                    || interactable.GetType() == typeof(VolumePipette)) continue;
+            // Test hanya bisa di VR hardware
+            if (controllerL.GetAxis(WebXRController.AxisTypes.Trigger) <= 0.1 && controllerSideTriggered.Equals('L') ||
+                controllerR.GetAxis(WebXRController.AxisTypes.Trigger) <= 0.1 && controllerSideTriggered.Equals('R'))
+            {
+                if (pourableTriggered != null)
+                {
+                    pourableTriggered.StopTriggerAction();
+                    controllerSideTriggered = ' ';
+                }
+            }
 
-                interactable.setInteractableText(
-                    "Massa ditampung = " + (Mathf.Round(interactable.getWeightContained() * 100) / 100).ToString() +
-                    "\nTemperatur = " + interactable.getTemperature().ToString() +
-                    "\nMenampung " + interactable.getParticleInString()
-                );
+            // Untuk mengecek temperatur benda dan apakah sarung tangan telah digunakan
+            if (controllerL.GetAxis(WebXRController.AxisTypes.Grip) >= 0.85)
+            {
+                GameInteractables leftInteractable = GetClosestInteractable(controllerL.transform);
+
+                if (leftInteractable != null && leftInteractable.getTemperature() > 41 && !usingGloves)
+                {
+                    controllerL.GetComponent<CustomControllerInteraction>().Drop();
+                    PlayAudioByName("wrong_answer");
+                    // leftInteractable.gameObject.GetComponent<FixedJoint>().connectedBody = null;
+                }
+            }
+
+            if (controllerR.GetAxis(WebXRController.AxisTypes.Grip) >= 0.85)
+            {
+                GameInteractables rightInteractable = GetClosestInteractable(controllerR.transform);
+                if (rightInteractable != null && rightInteractable.getTemperature() > 41 && !usingGloves)
+                {
+                    controllerR.GetComponent<CustomControllerInteraction>().Drop();
+                    PlayAudioByName("wrong_answer");
+                    // rightInteractable.gameObject.GetComponent<FixedJoint>().connectedBody = null;
+                }
+            }
+
+            if (controllerR.GetButton(WebXRController.ButtonTypes.ButtonA))
+            {
+                PlayAudioByName("ok");
             }
 
             yield return null;
         }
-
-        Debug.Log("Simulation Controller: Experiment done");
-        StartCoroutine(delayBeforeQuit());
     }
 
     public void OnPouringInteractable(GamePourable pouring, GamePourable poured)
     {
         if (pouring == null || poured == null || poured.isFull || poured.GetComponent<Pippette15>() != null) return;
 
-        changeReceiverParticleContained(pouring, poured);
-        if (poured.getWeightContained() < 0.1f) poured.setTemperature(pouring.getTemperature());
+        if (poured.getWeightContained() < 0.01f) poured.setTemperature(pouring.getTemperature());
         pouring.ReduceFill("pour");
         poured.IncreaseFill("pour");
-
+        changeReceiverParticleContained(pouring, poured);
     }
 
     public void onSuckingWithPipette(GamePourable pipette, GamePourable container)
     {
         if (pipette == null || container == null || pipette.isFull) return;
 
-        changeReceiverParticleContained(container, pipette);
         if (pipette.getWeightContained() < 0.1f) pipette.setTemperature(container.getTemperature());
         pipette.IncreaseFill("suck");
         container.ReduceFill("suck");
+        changeReceiverParticleContained(container, pipette);
     }
 
     public void onPouringWithPipette(GamePourable pipette, GamePourable container)
     {
         if (pipette == null || container == null || container.isFull) return;
 
-        changeReceiverParticleContained(pipette, container);
         if (container.getWeightContained() < 0.1f) container.setTemperature(pipette.getTemperature());
         pipette.ReduceFill("suck");
         container.IncreaseFill("suck");
+        changeReceiverParticleContained(pipette, container);
     }
 
-    public void onPouringWithBigPipette(GamePourable pipette, GamePourable container)
+    public void onPouringWithBigPipette(GamePourable pipette, GamePourable container, bool trigger)
     {
         if (pipette == null || container == null) return;
         if (container.isFull) return;
 
-        changeReceiverParticleContained(pipette, container);
         pipette.ReduceFill("bpip");
         container.IncreaseFill("bpip");
+        changeReceiverParticleContained(pipette, container);
     }
 
     public void onTitrate(GamePourable burette, GamePourable erlenmeyer)
@@ -236,12 +312,10 @@ public class SimulationController : MonoBehaviour
         ArrayList particlesSender = sender.getParticleContained();
         ArrayList particlesReceiver = receiver.getParticleContained();
 
-        Debug.Log("Particle: s = " + (particlesSender == null).ToString() + ", r = " + (particlesReceiver == null).ToString());
         foreach (string particleSender in particlesSender.ToArray())
         {
             bool same = false;
             if (particleSender.Equals("")) continue;
-            Debug.Log("Particle: > particleSender = " + particleSender + "...");
             foreach (string particleReceiver in particlesReceiver.ToArray())
             {
                 if (particleReceiver.Equals(particleSender))
@@ -253,14 +327,21 @@ public class SimulationController : MonoBehaviour
                 {
                     particlesReceiver.Remove(particleReceiver);
                 }
-                else
-                {
-                    Debug.Log("Particle: >>particleReceiver = " + particleReceiver + "...");
-                }
+                // else
+                // {
+                //     Debug.Log("Particle: >>particleReceiver = " + particleReceiver + "...");
+                // }
 
             }
 
             if(!same) particlesReceiver.Add(particleSender);
+        }
+
+        if (Mathf.Approximately(sender.getWeightContained(), 0))
+        {
+            sender.getParticleContained().Clear();
+            StartCoroutine(updateInteractableText(sender));
+            StartCoroutine(updateInteractableText(receiver));
         }
     }
 
@@ -292,7 +373,7 @@ public class SimulationController : MonoBehaviour
 
     public GamePourable GetClosestPourables(Transform transform)
     {
-        float distance = 0.6f;
+        float distance = 0.4f;
         GamePourable closestPourable = null;
 
         foreach (var pourable in interactables)
@@ -309,14 +390,29 @@ public class SimulationController : MonoBehaviour
             {
                 // https://stackoverflow.com/questions/4099366/how-do-i-check-if-a-number-is-positive-or-negative-in-c
                 // https://docs.microsoft.com/en-us/dotnet/api/system.math.sign?redirectedfrom=MSDN&view=net-5.0#overloads
-                if (Mathf.Sign(closestX) == Mathf.Sign(transform.rotation.x) && Mathf.Sign(closestZ) == Mathf.Sign(transform.rotation.z))
-                {
-                    distance = currentDistance;
-                    closestPourable = pourable.GetComponent<GamePourable>();
-                }
-                else continue;
+                // if (Mathf.Sign(closestX) == Mathf.Sign(transform.rotation.x) && Mathf.Sign(closestZ) == Mathf.Sign(transform.rotation.z))
+
+                Debug.Log("SimulationController: name = " + pourable.name + " with currentDistance = " + currentDistance + 
+                    "\ntempXRot = " + transform.rotation.x + ", tempEulerXRot = " + transform.eulerAngles.x + " and closestZ is in " + closestZ + 
+                    "\ntempZRot = " + transform.rotation.z + ", tempEulerZRot = " + transform.eulerAngles.z + " and closestX is in " + closestX);
+
+                distance = currentDistance;
+                closestPourable = pourable.GetComponent<GamePourable>();
+
+                // Karena transform.rotation.x dan z nilainya cukup sensitif dan menghitung perubahan sudut nya terhadap perubahan pada
+                // sumbu lain, cek relevansi sudut terhadap rotasi yang utama.
+                // if (Mathf.Abs(transform.rotation.x) < 0.01f && Mathf.Sign(closestX) == Mathf.Sign(transform.rotation.z) 
+                //     || Mathf.Abs(transform.rotation.z) < 0.01f && Mathf.Sign(closestZ) == Mathf.Sign(transform.rotation.x))
+                // {
+                //     distance = currentDistance;
+                //     closestPourable = pourable.GetComponent<GamePourable>();
+                // }
+                // 
+                // else continue;
             }
             else {; }
+
+            Debug.Log("SimulationController: distance is now " + distance);
         }
 
         return closestPourable;

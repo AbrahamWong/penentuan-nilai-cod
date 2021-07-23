@@ -1,98 +1,137 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Funnel : GameInteractables
 {
-    private GameInteractables attachedTo;
+    [SerializeField] private GameInteractables attachedTo;
     private Rigidbody rb;
+    [SerializeField] private bool funnelLock = false, isAllowedToGrip = false;
 
     public GameInteractables getAttachedIntearctable() => attachedTo;
 
-    // Start is called before the first frame update
     protected override void Start()
     {
         base.Start();
         text.text = "";
+        rb = gameObject.GetComponent<Rigidbody>();
     }
 
-    // Update is called once per frame
-    // Not implementing GameInteractables.Update()
     private void Update()
     {
-        if (attachedTo == null) return;
-        if (
-            // Vector3.Distance(attachedTo.transform.position, gameObject.transform.position) > 0.3f || 
-            Mathf.Abs(attachedTo.transform.position.x - transform.position.x) > 0.08f || attachedTo.transform.position.z - transform.position.z > 0.08f)
-        {
-            transform.SetParent(transform.root);
-            rb.useGravity = true;
-            rb.constraints = RigidbodyConstraints.None;
-            rb.isKinematic = false;
-            attachedTo = null;
-        }
+        if (attachedTo != null)
+            transform.rotation = attachedTo.transform.rotation;
     }
+
+    private void OnTriggerEnter(Collider other) 
+        => getFunnelTrigger(other);
+    
 
     public void getFunnelTrigger (Collider other)
     {
         // Berarti interaksi dengan objek yang bukan GameInteractables
         // Misal: meja.
-        Debug.Log("Funnel: trigger " + other.name);
-        if (other.gameObject.GetComponent<GameInteractables>() == null) return;
-        Debug.Log("Funnel: hit " + other.name);
-
-        rb = gameObject.GetComponent<Rigidbody>();
-        rb.useGravity = false;
+        if (other.gameObject.GetComponent<GameInteractables>() == null)
+        {
+            if (other.name.Equals("InputModel"))
+            {
+                WebXR.WebXRController controller = other.transform.parent.GetComponent<WebXR.WebXRController>();
+                isAllowedToGrip = controller.GetAxis(WebXR.WebXRController.AxisTypes.Grip) <= 0.2 ? true : false;
+            }
+            return;
+        }
 
         // Cek collider yang mana yang menyentuh corong
-        switch (other.transform.name)
+        switch (other.GetComponent<GameInteractables>().GetType().ToString())
         {
-            case "Lab Watch Glass":
+            case "WatchGlass":
                 WatchGlass wg = simulationController.getWatchGlass();
 
                 ArrayList particle = new ArrayList();
                 particle.Add(wg.particleInside);
                 attachedTo.setParticleContained(particle);
 
-                Debug.Log("Containment: particle contains = \"" + wg.particleInside + "\"");
-                Debug.Log("Containment: particle contained = \"" + attachedTo.getParticleContained()[0] + "\"");
+                attachedTo.GetComponent<GamePourable>().addOffsetWeight(wg.getWeightContained());
+                StartCoroutine(simulationController.updateInteractableText(attachedTo));
                 wg.emptyChemicals();
                 break;
 
-            // Semua labu ukur
-            case "Volumetric 500":
-            case "Volumetric 500 (1)":
-            case "Volumetric 500_S":
+            case "Volumetric500":
+                if (funnelLock) break;
+
                 GameObject volumetric500 = other.gameObject;
 
-                transform.SetParent(volumetric500.transform.Find("MeshContainer/volumetric_500"));
-                transform.rotation = new Quaternion(0, 0, 0, 0);
-                transform.localPosition = new Vector3(0f, 0.22f, 0f);
-
                 attachedTo = volumetric500.GetComponent<GameInteractables>();
+                transform.position = volumetric500.transform.position + new Vector3(0, 0.2f, 0);
+                transform.rotation = new Quaternion(0, 0, 0, 1);
+                hingeFromObject(volumetric500);
 
-                // https://forum.unity.com/threads/freeze-multiple-rigid-body-constraints.141450/
-                rb.isKinematic = true;
-                // rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionY;
+                funnelLock = true;
                 break;
 
-            case "buret":
+            case "Burette":
+                if (funnelLock) break;
+
                 GameObject burette = other.gameObject;
 
-                transform.SetParent(burette.transform);
-                transform.localEulerAngles = new Vector3(-90, 0, 180);
-                transform.localPosition = new Vector3(0.0f, 0.0f, 0.626f);
-
                 attachedTo = burette.GetComponent<GameInteractables>();
+                transform.position = burette.transform.position + new Vector3(0, 0.3f, 0);
+                hingeToObject(burette);
 
-                rb.isKinematic = true;
-                rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionY;
+                funnelLock = true;
                 break;
 
             default:
-                Debug.Log("Objek tidak terdaftar untuk trigger Funnel");
-                rb.useGravity = true;
                 break;
         }
+    }
+
+    private void OnTriggerStay(Collider other)
+    {
+        if (other.transform.parent.GetComponent<WebXR.WebXRController>() == null) return;
+        
+        WebXR.WebXRController controller = other.transform.parent.GetComponent<WebXR.WebXRController>();
+        if (controller != null && controller.GetAxis(WebXR.WebXRController.AxisTypes.Grip) >= 0.85 
+            && attachedTo != null && isAllowedToGrip)
+        {
+            unhingeFromObject(attachedTo.gameObject);
+            attachedTo = null;
+            funnelLock = false;
+        }
+    }
+
+    // https://forum.unity.com/threads/stick-object-to-moving-object.127988/
+    private void hingeToObject (GameObject hinge)
+    {
+        HingeJoint hj = gameObject.AddComponent<HingeJoint>();
+        hj.connectedBody = hinge.GetComponent<Rigidbody>();
+        rb.mass = 0.00001f;
+        gameObject.GetComponent<Collider>().material.bounciness = 0;
+        rb.freezeRotation = true;
+        rb.velocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
+    }
+
+    private void hingeFromObject (GameObject hinge)
+    {
+        HingeJoint hj = hinge.AddComponent<HingeJoint>();
+        hj.connectedBody = rb;
+
+        FixedJoint fj = gameObject.AddComponent<FixedJoint>();
+        fj.connectedBody = hinge.GetComponent<Rigidbody>();
+
+        rb.mass = 0.00001f;
+        gameObject.GetComponent<Collider>().material.bounciness = 0;
+        rb.freezeRotation = true;
+        rb.velocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
+    }
+
+    private void unhingeFromObject(GameObject hinge)
+    {
+        Destroy(hinge.GetComponent<HingeJoint>());
+        Destroy(GetComponent<HingeJoint>());
+        Destroy(GetComponent<FixedJoint>());
+        rb.mass = 1;
+        rb.freezeRotation = false;
     }
 }

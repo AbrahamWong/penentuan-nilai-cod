@@ -1,11 +1,11 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class WatchGlass : GameInteractables
 {
     [SerializeField] protected float decreaseFactor = 0.025f;
-    protected int iteration = 0;
+    protected List<Transform> potassiumPermanganates, oxalicAcids;
+    protected string activeObjectName = "";
 
     public string particleInside { get; set; }
 
@@ -13,65 +13,63 @@ public class WatchGlass : GameInteractables
     protected override void Start()
     {
         base.Start();
-        text.text = "";
-    }
 
-    // Update is called once per frame
-    // private void Update()
-    // { 
-    // }
+        text.text = "";
+
+        Transform kmno4Parent = transform.Find("MeshContainer/watch_glass/KMnO4");
+        Transform h2c2o4Parent = transform.Find("MeshContainer/watch_glass/H2C2O4");
+
+        potassiumPermanganates = new List<Transform>();
+        oxalicAcids = new List<Transform>();
+        foreach (Transform t in kmno4Parent.gameObject.GetComponentsInChildren<Transform>(true)) 
+            if (t != kmno4Parent) potassiumPermanganates.Add(t);
+        foreach (Transform t in h2c2o4Parent.gameObject.GetComponentsInChildren<Transform>(true)) 
+            if (t != h2c2o4Parent) oxalicAcids.Add(t);
+        
+        Debug.Log("WatchGlass: pottasiumPermanganates => " + potassiumPermanganates[0].name + potassiumPermanganates[1].name);
+    }
 
     // Penggunaan ArrayList daripada array Transform[]
     // https://www.tutorialsteacher.com/csharp/csharp-arraylist
-    private ArrayList createdObjects = new ArrayList();
+    // private ArrayList createdObjects = new ArrayList();
     public void addChemicals(float weight, string chemType)
     {
         weightContained += weight;
-        iteration++;
-        float fact = 1f + ((float)iteration / 10);
 
-        for (int i = 0; i < 100; i++)
+        // https://stackoverflow.com/questions/20147879/switch-case-can-i-use-a-range-instead-of-a-one-number
+        switch (weightContained)
         {
-            Vector3 pos = new Vector3(
-                Random.Range(-0.005f, 0.005f) * fact, 
-                0.002f * fact, 
-                Random.Range(-0.005f, 0.005f) * fact);
-
-            // https://answers.unity.com/questions/586985/how-to-make-an-instantiated-prefab-a-child-of-a-ga.html
-            // https://answers.unity.com/questions/886203/change-name-of-instantiate-prefab.html
-            string prefab = chemType.Equals("h2c2o4") ? 
-                            "Sampel Partikel H2C2O4" : chemType.Equals("kmno4") ? 
-                                                       "Sampel Partikel KMnO4" : "Sampel Partikel";
-            particleInside = chemType;
-
-            Transform tr = Instantiate(gameObject.transform.Find(prefab), pos + transform.position, Quaternion.identity);
-            tr.name = "Dust " + i;
-            tr.parent = GameObject.Find("Partikel").transform;
-            tr.gameObject.SetActive(true);
-
-            // array[].SetValue(object, index)
-            createdObjects.Add(tr);
+            case float n when (n >= 0.5f):
+                activateObject(chemType.Equals("h2c2o4") ? oxalicAcids : potassiumPermanganates, 5);
+                break;
+            case float n when (n >= 0.4f):
+                activateObject(chemType.Equals("h2c2o4") ? oxalicAcids : potassiumPermanganates, 4);
+                break;
+            case float n when (n >= 0.3f):
+                activateObject(chemType.Equals("h2c2o4") ? oxalicAcids : potassiumPermanganates, 3);
+                break;
+            case float n when (n >= 0.2f):
+                activateObject(chemType.Equals("h2c2o4") ? oxalicAcids : potassiumPermanganates, 2);
+                break;
+            case float n when (n >= 0.1f):
+                activateObject(chemType.Equals("h2c2o4") ? oxalicAcids : potassiumPermanganates, 1);
+                break;
+            default:
+                break;
         }
 
-        Debug.Log("Created Objects Amount: " + createdObjects.Count);
+        particleInside = chemType;
     }
 
     public void reduceChemicals()
     {
-        if (weightContained < 0f || createdObjects[0] == null) return;
+        if (weightContained < 0f) return;
 
         weightContained = weightContained - decreaseFactor < 0f ? 0f : weightContained - decreaseFactor;
         if (weightContained <= 0.15f && weightContained > 0.14f) weightContained = 0.158f;
 
-        int amountBefore = createdObjects.Count;
-        for (int i = amountBefore; i > amountBefore - 15; i--)
-        {
-            if (createdObjects[i - 1] == null) return;
-
-            Debug.Log("Created Objects Amount: " + i);
-            Destroy(((Transform) createdObjects[i - 1]).gameObject);
-            createdObjects.RemoveAt(i - 1);
-        }
+        activateObject(activeObjectName.Substring(activeObjectName.Length - 1) == "O" ? oxalicAcids : potassiumPermanganates, 
+            (int)(Mathf.Round(weightContained * 1000) / 100));
 
     }
 
@@ -79,12 +77,24 @@ public class WatchGlass : GameInteractables
     {
         weightContained = 0f;
 
-        foreach (Transform createdObject in createdObjects)
+        activateObject(potassiumPermanganates, 0);
+        activateObject(oxalicAcids, 0);
+    }
+
+    private void activateObject(List<Transform> gameObjects, int number)
+    {
+        if (number > gameObjects.Count)
         {
-            Destroy(createdObject.gameObject);
+            gameObjects[gameObjects.Count - 1].gameObject.SetActive(true);
+            return;
         }
 
-        createdObjects.Clear();
-        iteration = 0;
+        for (int i = 0; i < gameObjects.Count; i++)
+        {
+            gameObjects[i].gameObject.SetActive(i == number - 1 ? true : false);
+            activeObjectName = i == number ? gameObjects[i].name : activeObjectName.Equals("") ? "" : activeObjectName;
+        }
+
+        Debug.Log(activeObjectName);
     }
 }

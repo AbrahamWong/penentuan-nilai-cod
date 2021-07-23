@@ -1,20 +1,12 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class Pippette15 : GamePourable
 {
-    [SerializeField] private float fillInMililiter;
     // [SerializeField] private bool hasFill = false;
     [SerializeField] private bool canUse = false;
     [SerializeField] private string tempParticle;
     private GamePourable pourableOnContact;
 
-    public void setUsability(bool status) => canUse = status;
-    public bool getUsability() => canUse;
-
-    public void setTempParticle(string particle) => tempParticle = particle;
-    public string getTempParticle() => tempParticle;
     public void setPourableOnContact(GamePourable pourable) => pourableOnContact = pourable;
 
     
@@ -32,9 +24,46 @@ public class Pippette15 : GamePourable
         weightContained = EstimateFillInML();
     }
 
-    private void Update()
+    // Falloff
+    public int count = 0;
+    private new void OnTriggerEnter(Collider other)
     {
-        fillInMililiter = EstimateFillInML();
+        GameInteractables interactables = other.GetComponent<GameInteractables>();
+        Debug.Log("Pipette: other.name => " + other.name + ", interactable isNull? " + (interactables == null));
+        if (interactables == null) return;
+
+        Debug.Log("Pipette: interactable => " + interactables.name);
+
+        // Real function
+        tempParticle = interactables.getParticleContained() != null && interactables.getParticleContained().Count > 0 
+            ? interactables.getParticleContained()[0].ToString() : "";
+        canUse = true;
+        if (other.GetComponent<GamePourable>() != null) pourableOnContact = other.GetComponent<GamePourable>();
+
+        // // Falloff func
+        // GamePourable pourable = other.GetComponent<GamePourable>();
+        // Debug.Log("Pipette: pourable => " + pourable.name);
+        // if (pourable != null)
+        // {
+        //     setPourableOnContact(pourable);
+        //     switch (count % 2)
+        //     {
+        //         case 0:
+        //             StopTriggerAction();
+        //             break;
+        // 
+        //         case 1:
+        //             StartTriggerAction();
+        //             break;
+        //     }
+        //     count++;
+        // }
+    }
+
+    private new void OnTriggerExit(Collider other)
+    {
+        setPourableOnContact(null);
+        canUse = false;
     }
 
     public override void StartTriggerAction()
@@ -52,9 +81,9 @@ public class Pippette15 : GamePourable
         base.StopTriggerAction();
         if (!isFull && canUse)
         {
-            simulationController.onSuckingWithPipette(this, pourableOnContact);
             particleContained.Add(tempParticle);
             tempParticle = "";
+            simulationController.onSuckingWithPipette(this, pourableOnContact);
         }
     }
 }

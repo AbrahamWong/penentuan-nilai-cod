@@ -1,12 +1,8 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Erlenmeyer300 : GamePourable
 {
-    float eulerXAngle;
-    float eulerZAngle;
-    [SerializeField] private float fillInMililiter;
     private bool codReadyToCount = false;
     const float permanganateStdNeeded = 4.5f;
     [SerializeField] private float permanganateTitrationNeeded;
@@ -23,8 +19,6 @@ public class Erlenmeyer300 : GamePourable
         maxFill = 0.02f;
         normalXAngle = 0.5f;
         normalZAngle = 0.5f;
-        eulerXAngle = 60;
-        eulerZAngle = 60;
         capacity = 300;     // 300ml
 
         base.Start();
@@ -38,37 +32,73 @@ public class Erlenmeyer300 : GamePourable
             particleContained.Add("air_danau_unair");
         }
 
-        permanganateTitrationNeeded = Random.Range(4f, 5f);
+        // Air Danau UNAIR berdasarkan percobaan dari DTKI, membutuhkan 3 - 4 ml 
+        // KMnO4 dalam proses titrasi penentuan nilai COD, dengan nilai COD sekitar 61.1
+        permanganateTitrationNeeded = Random.Range(3f, 4f);
+        cheatCode();
+
         StartCoroutine(coroutineCheckExperiments());
     }
 
-    // Update is called once per frame
+    private void cheatCode()
+    {
+        if (!name.Contains("CHEAT")) return;
+        else if (name.Equals("CHEAT4"))
+        {
+            weightContained = 10;       // 10ml campuran ((air 100ml + asam sulfat 5ml) dipanaskan hingga 60 derajat + 10ml asam oksalat))
+            temperature = 61;
+            particleContained.Clear();
+            particleContained.Add("h2c2o4");
+            particleContained.Add("h2so4");
+            titrationOnce = true; titrationFinished = true;
+
+            rend.material.SetColor("_LiquidColor", parseHexToColor(LiquidColors.KMNO4_100));
+            rend.material.SetColor("_SurfaceColor", parseHexToColor(SurfaceColors.KMNO4_100));
+
+            rend.material.SetFloat(rendererFillReference, getFillMaterialPercentage());
+        } 
+        else if (name.Equals("CHEAT5"))
+        {
+            weightContained = 125;       // 10ml campuran ((air 100ml + asam sulfat 5ml) dipanaskan hingga 60 derajat + 10ml asam oksalat))
+            temperature = 100;
+            particleContained.Clear();
+            particleContained.Add("air_danau_unair");
+            particleContained.Add("h2c2o4");
+            particleContained.Add("h2so4");
+            particleContained.Add("kmno4");
+            titrationOnce = true; titrationFinished = true;
+            heatLerpOnce = true;
+            codReadyToCount = true;
+
+            rend.material.SetColor("_LiquidColor", parseHexToColor(LiquidColors.KMNO4_100));
+            rend.material.SetColor("_SurfaceColor", parseHexToColor(SurfaceColors.KMNO4_100));
+            rend.material.SetFloat(rendererFillReference, getFillMaterialPercentage());
+        }
+    }
+
     private void Update()
     {
-        if (transform.rotation.normalized.x > normalXAngle || transform.rotation.normalized.z > normalZAngle 
-            || transform.rotation.eulerAngles.x > eulerXAngle || transform.rotation.eulerAngles.z > eulerZAngle )
+
+    }
+
+    private void OnTriggerStay(Collider other)
+    {
+        if (okToPour)
         {
-            if (rend.material.GetFloat(rendererFillReference) <= minFill) return;
+            if (rend.material.GetFloat(rendererFillReference) <= minFill ||
+                pouredObject.transform.position.y > transform.position.y) return;
 
-            if (simulationController.GetClosestPourables(transform) != null)
-            {
-                GamePourable closest = simulationController.GetClosestPourables(transform);
-                simulationController.OnPouringInteractable(this, closest);
-            }
+            if (Mathf.Abs(transform.rotation.normalized.x) > normalXAngle || Mathf.Abs(transform.rotation.normalized.z) > normalZAngle)
+                simulationController.OnPouringInteractable(this, pouredObject);
         }
-
-        fillInMililiter = EstimateFillInML();
     }
 
     IEnumerator coroutineCheckExperiments()
     {
         while (!simulationController.isExperimentDone())
         {
-            if (!titrationOnce) 
-            {
-                yield return null;
-                continue;
-            }
+            Debug.Log("Erlenmeyer: temperature => " + temperature + ", titrationFinished => " + titrationFinished);
+            if (!titrationOnce) yield return null;
 
             // Eksperimen 1: Standarisasi KMnO4
             // Tahapan:
@@ -80,9 +110,13 @@ public class Erlenmeyer300 : GamePourable
             // Erlenmeyer -> onPouring(Beaker::100ml aqua) -> onPipette(5ml H2SO4) -> ElectricHeater->coroutine(raiseTemp=>60)
             //      -> onPouring(MeasurementC10::10ml KMnO4) -> onSUCK(this)
             //      -> [Pindah erlenmeyer] onPipette(this to Erlmenmeyer) -> onTitrate(KMnO4) [4.5 || 4.7]
-            if (!name.Equals("Air Danau UNAIR") && temperature >= 60 && titrationFinished) 
+            else if (!name.Equals("Air Danau UNAIR") 
+                // && name.Equals("CHEAT4")
+                && temperature >= 60 && titrationFinished) 
             {
                 simulationController.setPrerequisiteStatus(3, true);
+                simulationController.PlayAudioByName("ok_final");
+                break;
             }
 
             // Eksperimen 2: Penentuan Nilai COD
@@ -98,10 +132,14 @@ public class Erlenmeyer300 : GamePourable
             // 100ml air danau -> onPipette(5ml H2SO4) -> ElectricHeater->coroutine(raiseTemp=>70) -> onPouring(MeasurementC10::10ml KMnO4)
             //      -> ElectricHeater->coroutine(raiseTemp=>boil) while LerpDown() -> onPouring(MeasurementC10::10ml H2C2O4)
             //      -> onTitrate(KMnO4) [Mathf.Rand(4, 5)]
-            else if (temperature >= 80 && titrationFinished && heatLerpOnce)
+            else if (name.Equals("Air Danau UNAIR") 
+                // || name.Equals("CHEAT5")
+                && temperature >= 80 && titrationFinished && heatLerpOnce)
             {
                 simulationController.setPrerequisiteStatus(4, true);
+                simulationController.PlayAudioByName("ok_final");
                 codReadyToCount = true;
+                break;
             }
 
             yield return new WaitForSeconds(.05f);
@@ -110,13 +148,13 @@ public class Erlenmeyer300 : GamePourable
         yield return null;
     }
 
-    bool titrationOnce = false, titrationFinished = false;
+    public bool titrationOnce = false, titrationFinished = false;
 
     // Used for lerping up the fill colour, specifically for titration with KMnO4.
     public void startLerpingUp()
     {
         if (titrationOnce) return;
-        Debug.Log("Erlenmeyer: testing lerp down.");
+        Debug.Log("Erlenmeyer: testing lerp up.");
         if (colorCoroutine != null) StopCoroutine(colorCoroutine);
         StartCoroutine(LerpUp());
         titrationOnce = true;
@@ -127,8 +165,8 @@ public class Erlenmeyer300 : GamePourable
         // https://gamedevbeginner.com/the-right-way-to-lerp-in-unity-with-examples/
         Color liquidBefore = rend.material.GetColor("_LiquidColor");
         Color surfaceBefore = rend.material.GetColor("_LiquidColor");
-        Color liquidPurple = parseHexToColor(LiquidColors.KMNO4_50);
-        Color surfacePurple = parseHexToColor(SurfaceColors.KMNO4_50);
+        Color liquidPurple = parseHexToColor(LiquidColors.KMNO4_100);
+        Color surfacePurple = parseHexToColor(SurfaceColors.KMNO4_100);
 
         float originalValue = weightContained;
         float titrationProgress = weightContained - originalValue;
@@ -138,7 +176,7 @@ public class Erlenmeyer300 : GamePourable
             Color liquidLerp = Color.Lerp(liquidBefore, liquidPurple, titrationProgress / lerpTitration);
             Color surfaceLerp = Color.Lerp(surfaceBefore, surfacePurple, titrationProgress / lerpTitration);
 
-            Debug.Log("Erlenmeyer: Lerp up. progress = " + titrationProgress + "/" + lerpTitration);
+            Debug.Log("Erlenmeyer: Lerp up. progress = " + titrationProgress + " / " + lerpTitration);
 
             rend.material.SetColor("_LiquidColor", liquidLerp);
             rend.material.SetColor("_SurfaceColor", surfaceLerp);

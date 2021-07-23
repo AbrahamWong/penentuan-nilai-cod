@@ -54,7 +54,7 @@ public class FumeRoom : MonoBehaviour
         rt.localPosition = new Vector3(-0.32f, 0.17f, 0);
 
         // Destroy after 1.5 seconds
-        Destroy(textPrerequisite, 1.5f);
+        Destroy(textPrerequisite, 4f);
     }
 
     private void fumeRoomActivated(bool status)

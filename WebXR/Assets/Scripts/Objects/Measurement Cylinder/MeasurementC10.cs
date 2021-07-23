@@ -1,12 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using TMPro;
+﻿using UnityEngine;
 
 public class MeasurementC10 : GamePourable
 {
-    [SerializeField] private float fillInMililiter;
-
     // Start is called before the first frame update
     protected override void Start()
     {
@@ -29,11 +24,22 @@ public class MeasurementC10 : GamePourable
     // Update is called once per frame
     private void Update()
     {
-        if (Mathf.Abs(transform.rotation.normalized.x) > normalXAngle || Mathf.Abs(transform.rotation.normalized.z) > normalZAngle)
+        // if (Mathf.Abs(transform.rotation.normalized.x) > normalXAngle || Mathf.Abs(transform.rotation.normalized.z) > normalZAngle)
+        // {
+        //     if (rend.material.GetFloat(rendererFillReference) <= minFill) return;
+        //     simulationController.OnPouringInteractable(this, simulationController.GetClosestPourables(transform));
+        // }
+    }
+
+    private void OnTriggerStay(Collider other)
+    {
+        if (okToPour)
         {
-            if (rend.material.GetFloat(rendererFillReference) <= minFill) return;
-            simulationController.OnPouringInteractable(this, simulationController.GetClosestPourables(transform));
+            if (rend.material.GetFloat(rendererFillReference) <= minFill ||
+                pouredObject.transform.position.y > transform.position.y) return;
+
+            if (Mathf.Abs(transform.rotation.normalized.x) > normalXAngle || Mathf.Abs(transform.rotation.normalized.z) > normalZAngle)
+                simulationController.OnPouringInteractable(this, pouredObject);
         }
-        fillInMililiter = EstimateFillInML();
     }
 }

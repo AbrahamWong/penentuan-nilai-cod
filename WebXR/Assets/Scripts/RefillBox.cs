@@ -5,7 +5,7 @@ using UnityEngine;
 public class RefillBox : MonoBehaviour
 {
     private SimulationController simulationController;
-    private GamePourable pourable;
+    private GamePourable pourable = null;
     private int timer = 0;
 
     // Start is called before the first frame update
@@ -18,7 +18,7 @@ public class RefillBox : MonoBehaviour
     {
         timer = 0;
         pourable = other.GetComponent<GamePourable>() == null ? pourable : other.GetComponent<GamePourable>();
-        pourable.getParticleContained().Clear();
+        if (pourable != null) pourable.getParticleContained().Clear();
     }
     private void OnTriggerStay(Collider other)
     {
@@ -32,6 +32,8 @@ public class RefillBox : MonoBehaviour
 
     private void OnTriggerExit(Collider other)
     {
+        if (gameObject.GetComponent<GamePourable>() == null) return;
+
         pourable = null;
     }
 }

@@ -1,10 +1,8 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class LabSafetyTrigger : GameInteractables
 {
-    public GameObject safetyObject;
+    public Material gloveMaterial;
 
     protected override void Start()
     {
@@ -14,34 +12,33 @@ public class LabSafetyTrigger : GameInteractables
 
     private void OnTriggerEnter(Collider other)
     {
-        // Cek untuk trigger agar hanya dilakukan oleh TrackedAlias
-        if (other.name.Equals("ExampleAvatar"))
+        if (!other.transform.parent.CompareTag("VRController")) return;
+        switch (gameObject.name)
         {
-            switch (safetyObject.name)
-            {
-                case "Item Lab Coat":
-                    simulationController.usingLabCoat = true;
-                    Destroy(gameObject);
-                    break;
+            case "Item Lab Coat":
+                simulationController.usingLabCoat = true;
+                gameObject.SetActive(false);
+                break;
 
-                case "Item Gloves":
-                    simulationController.usingGloves = true;
-                    Destroy(gameObject);
-                    break;
+            case "Item Gloves":
+                simulationController.usingGloves = true;
+                simulationController.getLeftController().transform.Find("model").GetComponent<Renderer>().material = gloveMaterial;
+                simulationController.getRightController().transform.Find("model").GetComponent<Renderer>().material = gloveMaterial;
+                gameObject.SetActive(false);
+                break;
 
-                case "Item Respirator":
-                    simulationController.usingRespirator = true;
-                    Destroy(gameObject);
-                    break;
+            case "Item Respirator":
+                simulationController.usingRespirator = true;
+                gameObject.SetActive(false);
+                break;
 
-                case "Item Safety Glass":
-                    simulationController.usingGlasses = true;
-                    Destroy(gameObject);
-                    break;
+            case "Item Safety Glass":
+                simulationController.usingGlasses = true;
+                gameObject.SetActive(false);
+                break;
 
-                default:
-                    break;
-            }
+            default:
+                break;
         }
     }
 }

@@ -1301,6 +1301,7 @@ GameObject:
   - component: {fileID: 95292425453911886}
   - component: {fileID: 114128207473628304}
   - component: {fileID: 114589835210473740}
+  - component: {fileID: 61166811371885882}
   - component: {fileID: 7185579886917944061}
   m_Layer: 0
   m_Name: handL
@@ -1406,6 +1407,26 @@ MonoBehaviour:
   controllerVisuals:
   - {fileID: 1136128897566686}
   - {fileID: 1664295426898042}
+  handJointPrefab: {fileID: 8513787482403080262, guid: 67541c9d1fd5e2c4798986ee73c07923,
+    type: 3}
+  useInputProfile: 1
+  inputProfileObject: {fileID: 1611361787474004}
+  inputProfileModelParent: {fileID: 1469228564561163144}
+--- !u!114 &61166811371885882
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1799026754646168}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e3f1d6cbd208a6b4f9fcac8f6fdf27f1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  animator: {fileID: 95292425453911886}
+  animationStateName: Take
+  controllerVisuals: []
   handJointPrefab: {fileID: 8513787482403080262, guid: 67541c9d1fd5e2c4798986ee73c07923,
     type: 3}
   useInputProfile: 1
@@ -1781,6 +1802,7 @@ GameObject:
   - component: {fileID: 95219300520550374}
   - component: {fileID: 114546255618804366}
   - component: {fileID: 114372649503696970}
+  - component: {fileID: 1236509976786171268}
   - component: {fileID: 1966769163579045322}
   m_Layer: 0
   m_Name: handR
@@ -1886,6 +1908,26 @@ MonoBehaviour:
   controllerVisuals:
   - {fileID: 1644997114004198}
   - {fileID: 1091283458777958}
+  handJointPrefab: {fileID: 8513787482403080262, guid: 67541c9d1fd5e2c4798986ee73c07923,
+    type: 3}
+  useInputProfile: 1
+  inputProfileObject: {fileID: 1611361787474004}
+  inputProfileModelParent: {fileID: 599836867309221058}
+--- !u!114 &1236509976786171268
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1986733487743170}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e3f1d6cbd208a6b4f9fcac8f6fdf27f1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  animator: {fileID: 95219300520550374}
+  animationStateName: Take
+  controllerVisuals: []
   handJointPrefab: {fileID: 8513787482403080262, guid: 67541c9d1fd5e2c4798986ee73c07923,
     type: 3}
   useInputProfile: 1

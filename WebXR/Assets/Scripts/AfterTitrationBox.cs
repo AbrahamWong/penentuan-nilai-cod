@@ -20,18 +20,22 @@ public class AfterTitrationBox : MonoBehaviour
         if (erlenmeyer == null || !erlenmeyer.getCODStatus()) return;
 
         erlenmeyers.Add(erlenmeyer);
-        if (erlenmeyers.Count >= minimalErlenmeyer) StartCoroutine(coroutineCheckCODValue());
+        other.gameObject.SetActive(false);
+
+        if (erlenmeyers.Count >= minimalErlenmeyer) checkCODValue();
     }
 
-    IEnumerator coroutineCheckCODValue()
+    private void checkCODValue()
     {
-        float titrationsNeeded = 0f; 
+        float titrationsNeeded = 0f;
         erlenmeyers.ForEach(erlenmeyer => { titrationsNeeded += erlenmeyer.getPermanganateTitrationNeeded(); });
-        float mean = titrationsNeeded / (float) erlenmeyers.Count;
+        float mean = titrationsNeeded / (float)erlenmeyers.Count;
 
-        float cod = Formula.CalculateCOD(mean, 0.02715f, 10, 0.01f);
+        float cod = Formula.CalculateCOD(mean, 0.02175f, 10, 0.01f);
+
         tmp.text = "Nilai COD = " + cod.ToString();
-        GameObject.FindGameObjectWithTag("GameController").GetComponent<SimulationController>().setPrerequisiteStatus(5, true);
-        yield return null;
+        SimulationController sc = GameObject.FindGameObjectWithTag("GameController").GetComponent<SimulationController>();
+        sc.setPrerequisiteStatus(5, true);
+        sc.PlayAudioByName("ok_final");
     }
 }

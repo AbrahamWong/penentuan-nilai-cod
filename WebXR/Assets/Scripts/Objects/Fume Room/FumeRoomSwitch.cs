@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class FumeRoomSwitch : MonoBehaviour
 {
@@ -13,7 +11,6 @@ public class FumeRoomSwitch : MonoBehaviour
 
     private SimulationController simulationController;
 
-    // Start is called before the first frame update
     void Start()
     {
         fumeRoom = transform.parent.parent.gameObject.GetComponent<FumeRoom>();
@@ -35,11 +32,13 @@ public class FumeRoomSwitch : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (simulationController.usingLabCoat && simulationController.usingRespirator && simulationController.usingGlasses && simulationController.usingGloves)
+        if (simulationController.usingLabCoat && 
+            simulationController.usingRespirator && 
+            simulationController.usingGlasses && 
+            simulationController.usingGloves)
         {
-            switchedOn = !switchedOn;
+            switchedOn = true;
 
-            Debug.Log("Fume Room State: " + switchedOn);
             fumeRoom.FumeButtonTriggered(switchedOn);
             fumeRoomActivated(switchedOn);
         }

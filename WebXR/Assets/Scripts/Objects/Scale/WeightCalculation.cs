@@ -1,34 +1,24 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using TMPro;
 
 public class WeightCalculation : MonoBehaviour
 {
-    private SimulationController simulationController;
     private float weightAttached = 0f;
     private TextMeshPro bigText, smallText;
 
-    // Start is called before the first frame update
     void Start()
     {
-        simulationController = GameObject.FindGameObjectWithTag("GameController").GetComponent<SimulationController>();
-
         GameObject[] scaleTexts = GameObject.FindGameObjectsWithTag("ScaleText");
         foreach (var text in scaleTexts)
         {
             if (text.name == "Berat Diatas Koma")
-            {
                 bigText = text.GetComponent<TextMeshPro>();
-            }
+            
             else if (text.name == "Berat Dibawah Koma")
-            {
                 smallText = text.GetComponent<TextMeshPro>();
-            }
         }
     }
 
-    // Update is called once per frame
     private GameObject objectAboveScale;
     private GameInteractables interactablesAboveScale;
     private bool hasObjectAbove = false;
@@ -74,13 +64,11 @@ public class WeightCalculation : MonoBehaviour
             case -1:
                 bigger = valString;
                 smaller = "00";
-
                 break;
 
             default:
                 bigger = valString.Substring(0, format);
                 smaller = valString.Substring(format + 1);
-
                 break;
         }
 

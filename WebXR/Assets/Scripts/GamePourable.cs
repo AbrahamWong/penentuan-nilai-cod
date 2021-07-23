@@ -1,18 +1,21 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 abstract public class GamePourable : GameInteractables
 {
     protected Renderer rend;
     protected string rendererFillReference;
-    protected double normalXAngle = 0;
-    protected double normalZAngle = 0;
+    protected double normalXAngle = 0, normalZAngle = 0;
     protected float capacity;
     protected float maxFill, minFill;
     protected Coroutine colorCoroutine;
 
     public bool isFull;
+
+    [SerializeField] protected float offsetWeight = 0;
+    public void setOffsetWeight(float w) => offsetWeight = w;
+    public void addOffsetWeight(float w) => offsetWeight += w;
+    public float getOffsetWeight() => offsetWeight;
 
     new protected virtual void Start()
     {
@@ -21,6 +24,20 @@ abstract public class GamePourable : GameInteractables
         rendererFillReference = "_Fill";
 
         colorCoroutine = StartCoroutine(coroutineCheckParticle());
+    }
+
+
+    protected GamePourable pouredObject;
+    protected bool okToPour = false;
+    protected virtual void OnTriggerEnter(Collider other)
+    {
+        pouredObject = other.GetComponent<GamePourable>();
+        if (pouredObject != null) okToPour = true;
+    }
+
+    protected virtual void OnTriggerExit(Collider other)
+    {
+        pouredObject = null; okToPour = false;
     }
 
     protected IEnumerator coroutineCheckParticle()
@@ -43,20 +60,18 @@ abstract public class GamePourable : GameInteractables
                 }
             }
 
-            yield return new WaitForSeconds(.1f);
+            yield return new WaitForSeconds(.05f);
         }
 
     }
 
-    public virtual float EstimateFillInML()
-    { 
-        return rend == null ? 0 : ((rend.material.GetFloat(rendererFillReference) - minFill) / (maxFill - minFill)) * capacity;
-    }
+    public virtual float EstimateFillInML() => rend == null ? 
+        0 : 
+        ((rend.material.GetFloat(rendererFillReference) - minFill) / (maxFill - minFill)) * capacity;
 
     public virtual float getFillMaterialPercentage()
     {
         float fillPercentage = weightContained / capacity;
-
         return fillPercentage * (maxFill - minFill) + minFill;
     }
 
@@ -73,14 +88,20 @@ abstract public class GamePourable : GameInteractables
         }
         if (type.Equals("bpip") && weightContained > 0f) // Volume Pipette decreasing value
         {
-            weightContained -= LiquidTransferSpeed.bigPipetteSpeed;
+            weightContained -= LiquidTransferSpeed.bigPipetteSpeed * 0.25f;
         }
         else if (type.Equals("burr"))
         {
             weightContained -= LiquidTransferSpeed.buretteSpeed;
         }
+        else if (type.Equals("empty"))
+        {
+            weightContained = 0;
+            offsetWeight = 0;
+        }
 
         rend.material.SetFloat(rendererFillReference, getFillMaterialPercentage());
+        StartCoroutine(simulationController.updateInteractableText(this));
     }
 
     public virtual void IncreaseFill(string type)
@@ -95,7 +116,12 @@ abstract public class GamePourable : GameInteractables
         }
         if (type.Equals("bpip") && weightContained < capacity)
         {
-            weightContained += LiquidTransferSpeed.bigPipetteSpeed * (gameObject.GetComponent<VolumePipette>() != null ? 0.02f : 1);
+            weightContained += LiquidTransferSpeed.bigPipetteSpeed * (gameObject.GetComponent<VolumePipette>() != null ? 0.02f : 0.25f);
+            if (gameObject.GetComponent<VolumePipette>() == null) offsetWeight += LiquidTransferSpeed.bigPipetteSpeed * 0.25f;
+        }
+        if (type.Equals("bpit") && weightContained < capacity)
+        {
+            weightContained += LiquidTransferSpeed.bigPipetteSpeed * 0.5f;
         }
         else if (type.Equals("burr"))
         {
@@ -104,5 +130,6 @@ abstract public class GamePourable : GameInteractables
 
         rend.material.SetFloat(rendererFillReference, getFillMaterialPercentage());
         if (weightContained >= capacity) isFull = true;
+        StartCoroutine(simulationController.updateInteractableText(this));
     }
 }

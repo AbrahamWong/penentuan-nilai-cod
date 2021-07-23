@@ -10,6 +10,9 @@
 /WebXR/[Ll]ogs/
 /WebXR/[Mm]emoryCaptures/
 
+# Specifically for Build Test since it's just for testing purposes only
+/WebXR/BuildTest*
+
 # Asset meta data should only be ignored when the corresponding asset is also ignored
 !/[Aa]ssets/**/*.meta
 
