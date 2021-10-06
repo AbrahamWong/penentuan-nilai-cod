@@ -1,0 +1,16 @@
+{
+"companyName": "DefaultCompany",
+"productName": "Tilia + DePanther WXRE",
+"productVersion": "0.2",
+"dataUrl": "BuildTest18+.data.unityweb",
+"wasmCodeUrl": "BuildTest18+.wasm.code.unityweb",
+"wasmFrameworkUrl": "BuildTest18+.wasm.framework.unityweb",
+"graphicsAPI": ["WebGL 2.0","WebGL 1.0"],
+"webglContextAttributes": {"preserveDrawingBuffer": false},
+"splashScreenStyle": "Light",
+"backgroundColor": "#828080",
+"cacheControl": {"default": "must-revalidate"},
+"developmentBuild": false,
+"multithreading": false,
+"unityVersion": "2019.4.28f1"
+}
